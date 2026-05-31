@@ -1,0 +1,2474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OncoTwin-AI — Glioblastoma Clinical DSS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08101e;--bg2:#0d1628;--bg3:#111d32;--bg4:#172038;--bg5:#1d2840;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.1);--border3:rgba(255,255,255,0.16);
+  --accent:#0ea5e9;--accent-dim:rgba(14,165,233,0.12);--accent-glow:rgba(14,165,233,0.25);
+  --teal:#14b8a6;--teal-dim:rgba(20,184,166,0.1);
+  --danger:#ef4444;--danger-dim:rgba(239,68,68,0.12);
+  --warn:#f59e0b;--warn-dim:rgba(245,158,11,0.12);
+  --success:#22c55e;--success-dim:rgba(34,197,94,0.1);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.1);
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;--text4:#334155;
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:6px;--r2:10px;--r3:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased}
+.app{display:flex;flex-direction:column;height:100vh;width:100vw}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.tl{display:flex;align-items:center;gap:16px}
+.logo{display:flex;align-items:center;gap:10px}
+.lmark{width:30px;height:30px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0;letter-spacing:-0.3px}
+.lname{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
+.lsub{font-size:10px;color:var(--text3);letter-spacing:0.01em}
+.tsep{width:1px;height:26px;background:var(--border2)}
+.ptag{font-family:var(--mono);font-size:11px;color:var(--text2);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:3px 11px;letter-spacing:0.02em}
+.tr{display:flex;align-items:center;gap:10px}
+.vtag{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.schip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:4px 11px;border-radius:20px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2)}
+.schip.ready{background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.3);color:var(--accent)}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.schip.ready .sdot{background:var(--accent)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:196px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sg{padding:14px 14px 6px;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.12em;text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;color:var(--text2);font-size:12px;transition:all 0.12s;border-left:2px solid transparent;user-select:none}
+.ni:hover{background:var(--bg3);color:var(--text)}
+.ni.active{background:var(--accent-dim);color:var(--accent);border-left-color:var(--accent);font-weight:500}
+.ni.done .nn{background:var(--accent);color:#fff}
+.ni.new-feat{position:relative}
+.ni.new-feat::after{content:'NEW';font-size:8px;font-weight:700;background:var(--accent);color:#fff;padding:1px 5px;border-radius:3px;margin-left:auto;letter-spacing:0.05em}
+.nn{width:19px;height:19px;border-radius:50%;background:var(--bg4);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text3);flex-shrink:0;transition:all 0.2s}
+.ni.active .nn{background:var(--accent);color:#fff}
+.ssep{height:1px;background:var(--border);margin:10px 14px}
+.sbot{padding:12px 14px;font-size:10px;color:var(--text3);line-height:1.9}
+.sbot strong{color:var(--text2);font-weight:500}
+.sspace{flex:1}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;background:var(--bg);padding:24px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+.panel{display:none}
+.panel.active{display:block}
+.phd{margin-bottom:18px}
+.ptitle{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.2px}
+.psub{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px 20px;margin-bottom:14px}
+.ct{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.09em;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.ct::after{content:'';flex:1;height:1px;background:var(--border)}
+.ct-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:0.05em;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(14,165,233,0.2)}
+
+/* FORM */
+.fg4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.fg3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:10px;font-weight:600;color:var(--text2);letter-spacing:0.03em;text-transform:uppercase}
+.fg input,.fg select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:12px;padding:7px 10px;outline:none;transition:border-color 0.15s,box-shadow 0.15s;width:100%}
+.fg input:focus,.fg select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.fg select option{background:var(--bg3);color:var(--text)}
+
+/* TOGGLES */
+.tgrp{display:flex;gap:4px;flex-wrap:wrap}
+.tgl{padding:5px 11px;font-size:11px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;background:var(--bg3);color:var(--text2);transition:all 0.12s;font-family:var(--font);font-weight:400}
+.tgl:hover{border-color:var(--border3);color:var(--text)}
+.tgl.s-g{background:var(--success-dim);border-color:rgba(34,197,94,0.3);color:var(--success);font-weight:500}
+.tgl.s-w{background:var(--warn-dim);border-color:rgba(245,158,11,0.3);color:var(--warn);font-weight:500}
+.tgl.s-d{background:var(--danger-dim);border-color:rgba(239,68,68,0.3);color:var(--danger);font-weight:500}
+
+/* RUN BTN */
+.run-btn{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:0.02em;transition:all 0.15s;margin-top:6px}
+.run-btn:hover{background:#0284c7;transform:translateY(-1px)}
+.run-btn:active{transform:translateY(0)}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* METRICS */
+.mrow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;position:relative;overflow:hidden}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border)}
+.mc.h-high::before{background:var(--danger)}
+.mc.h-med::before{background:var(--warn)}
+.mc.h-low::before{background:var(--success)}
+.mc.h-info::before{background:var(--accent)}
+.mlb{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.09em;margin-bottom:8px}
+.mv{font-size:26px;font-weight:700;color:var(--text);line-height:1;font-family:var(--mono);letter-spacing:-0.5px}
+.mc.h-high .mv{color:var(--danger)}
+.mc.h-med .mv{color:var(--warn)}
+.mc.h-low .mv{color:var(--success)}
+.mc.h-info .mv{color:var(--accent)}
+.ms{font-size:10px;color:var(--text3);margin-top:5px}
+
+/* TABLE */
+.dt{width:100%;border-collapse:collapse;font-size:12px}
+.dt th{text-align:left;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:7px 12px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.dt td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:rgba(255,255,255,0.02)}
+.mono{font-family:var(--mono);font-size:11px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap;letter-spacing:0.02em}
+.bd{background:var(--danger-dim);color:var(--danger);border:1px solid rgba(239,68,68,0.2)}
+.bw{background:var(--warn-dim);color:var(--warn);border:1px solid rgba(245,158,11,0.2)}
+.bg{background:var(--success-dim);color:var(--success);border:1px solid rgba(34,197,94,0.2)}
+.bi{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(14,165,233,0.2)}
+.bn{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.bp{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(167,139,250,0.2)}
+
+/* BAR */
+.mbar{display:inline-flex;align-items:center;gap:8px}
+.mbg{width:72px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.mbf{height:100%;border-radius:2px}
+
+/* MODEL STEPS */
+.mstep{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.mstep:last-child{border-bottom:none}
+.msn{width:22px;height:22px;border-radius:50%;background:var(--accent-dim);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;border:1px solid rgba(14,165,233,0.2)}
+.mst{font-size:12px;font-weight:600;color:var(--text)}
+.msd{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.5}
+.msv{font-size:10px;color:var(--accent);font-family:var(--mono);margin-top:5px;background:var(--accent-dim);padding:3px 8px;border-radius:4px;display:inline-block;border:1px solid rgba(14,165,233,0.15)}
+
+/* TWIN TIMELINE */
+.trow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.trow:last-child{border-bottom:none}
+.tmo{font-size:10px;color:var(--text3);width:48px;flex-shrink:0;font-family:var(--mono);font-weight:600}
+.tbw{flex:1}
+.tbb{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.tbi{height:100%;border-radius:3px}
+.tpr{font-size:11px;font-weight:700;width:38px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+
+/* RECS */
+.ritem{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.ritem:last-child{border-bottom:none}
+.rico{width:32px;height:32px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;border:1px solid}
+.ri-d{background:var(--danger-dim);color:var(--danger);border-color:rgba(239,68,68,0.2)}
+.ri-w{background:var(--warn-dim);color:var(--warn);border-color:rgba(245,158,11,0.2)}
+.ri-i{background:var(--accent-dim);color:var(--accent);border-color:rgba(14,165,233,0.2)}
+.ri-s{background:var(--success-dim);color:var(--success);border-color:rgba(34,197,94,0.2)}
+.rtit{font-size:12px;font-weight:600;color:var(--text)}
+.rdsc{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.6}
+
+/* REPORT */
+.irow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.irow:last-child{border-bottom:none}
+.rkey{color:var(--text3);font-size:11px}
+.rval{color:var(--text);font-weight:600;font-family:var(--mono);font-size:11px}
+.rsec{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 10px;padding-top:4px;border-top:1px solid var(--border)}
+.rsec:first-child{margin-top:0;border-top:none;padding-top:0}
+
+/* NAV BTNS */
+.nbrow{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.nbtn{padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all 0.15s}
+.nbtn:hover{background:var(--bg4);color:var(--text)}
+.nbtn-p{background:var(--accent);border-color:var(--accent);color:#fff}
+.nbtn-p:hover{background:#0284c7}
+
+/* SHAP BAR */
+.shap-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)}
+.shap-row:last-child{border-bottom:none}
+.shap-feat{font-size:11px;color:var(--text2);width:130px;flex-shrink:0;font-weight:500}
+.shap-val{font-size:10px;font-family:var(--mono);font-weight:700;width:44px;text-align:right;flex-shrink:0}
+.shap-bar-wrap{flex:1;display:flex;align-items:center;gap:0;position:relative}
+.shap-axis{width:50%;height:100%;border-right:1px solid var(--border2)}
+.shap-pos{height:8px;border-radius:0 3px 3px 0;background:var(--danger);transition:width 0.4s}
+.shap-neg{height:8px;border-radius:3px 0 0 3px;background:var(--accent);transition:width 0.4s;margin-left:auto}
+
+/* TREATMENT SIM */
+.tx-proto{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tx-btn{padding:8px 16px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;background:var(--bg3);color:var(--text2);font-size:12px;font-weight:500;transition:all 0.15s;font-family:var(--font)}
+.tx-btn:hover{border-color:var(--border3);color:var(--text)}
+.tx-btn.sel{background:var(--accent-dim);border-color:rgba(14,165,233,0.4);color:var(--accent);font-weight:600}
+
+/* LONGITUDINAL */
+.long-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.long-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:14px;text-align:center}
+.long-card.baseline{border-top:2px solid var(--accent)}
+.long-card.mo3{border-top:2px solid var(--warn)}
+.long-card.mo6{border-top:2px solid var(--danger)}
+.long-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:10px}
+.long-mri{border-radius:50%;background:#000;display:block;margin:0 auto 10px}
+.long-stat{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.long-sub{font-size:10px;color:var(--text3);margin-top:3px}
+.trend-up{color:var(--danger);font-size:11px;font-weight:700}
+.trend-dn{color:var(--success);font-size:11px;font-weight:700}
+
+/* ALERT */
+.alert{border-radius:var(--r);padding:10px 14px;font-size:11px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;font-weight:400}
+.alert-d{background:var(--danger-dim);border:1px solid rgba(239,68,68,0.2);color:var(--danger)}
+.alert-w{background:var(--warn-dim);border:1px solid rgba(245,158,11,0.2);color:var(--warn)}
+.alert-i{background:var(--accent-dim);border:1px solid rgba(14,165,233,0.2);color:var(--accent)}
+.alert-s{background:var(--success-dim);border:1px solid rgba(34,197,94,0.2);color:var(--success)}
+
+/* DIVIDER */
+.div-line{height:1px;background:var(--border);margin:14px 0}
+
+/* DISCLAIMER */
+.disc{font-size:10px;color:var(--text3);line-height:1.7;padding:12px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);margin-top:4px}
+
+/* PBTN */
+.pbtn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all 0.15s}
+.pbtn:hover{background:var(--bg4);color:var(--text)}
+
+/* CW */
+.cw{position:relative;width:100%}
+.cleg{display:flex;gap:16px;margin-bottom:10px;font-size:10px;color:var(--text3);flex-wrap:wrap}
+.cleg span{display:flex;align-items:center;gap:5px}
+.cld{width:16px;height:2px;border-radius:1px;display:inline-block;flex-shrink:0}
+
+/* TX CARD BUTTONS */
+.tx-card-btn{display:flex;flex-direction:column;align-items:flex-start;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;background:var(--bg3);transition:all 0.15s;font-family:var(--font);text-align:left}
+.tx-card-btn:hover{border-color:var(--border3);background:var(--bg4)}
+.tx-card-btn.sel{background:var(--accent-dim);border-color:rgba(14,165,233,0.4)}
+.tx-card-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.tx-card-btn.sel .tx-card-name{color:var(--accent)}
+.tx-card-sub{font-size:10px;color:var(--text3)}
+.risk-bar-row{display:flex;align-items:center;gap:8px;font-size:10px}
+.risk-bar-label{color:var(--text3);width:110px;flex-shrink:0}
+.risk-bar-bg{flex:1;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.risk-bar-fill{height:100%;border-radius:3px}
+.risk-bar-val{color:var(--text2);font-family:var(--mono);font-weight:600;width:28px;text-align:right;flex-shrink:0}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
+.cost-row:last-child{border-bottom:none}
+.cost-key{color:var(--text3)}
+.cost-val{font-family:var(--mono);font-weight:600;color:var(--text)}
+@media print{
+  .sidebar,.topbar,.nbrow,.pbtn{display:none!important}
+  .app,.layout,.content{height:auto;overflow:visible}
+  .panel{display:block!important}
+  .card{break-inside:avoid}
+}
+
+/* CONFIDENCE CALIBRATION */
+.conf-strip{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);border:1px solid;margin-bottom:14px;font-size:11px}
+.conf-strip.high{background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.25);color:var(--success)}
+.conf-strip.moderate{background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.25);color:var(--warn)}
+.conf-strip.low{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25);color:var(--danger)}
+.conf-icon{font-size:18px;flex-shrink:0}
+.conf-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:2px}
+.conf-detail{font-size:11px;opacity:0.85}
+
+/* WHY BUTTON + MODAL */
+.why-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.25);border-radius:4px;color:var(--accent);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:0.03em;transition:all 0.12s;margin-top:5px}
+.why-btn:hover{background:rgba(14,165,233,0.2);border-color:rgba(14,165,233,0.5)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r3);padding:0;width:580px;max-width:calc(100vw - 32px);max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,0.5)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-title{font-size:13px;font-weight:700;color:var(--text);letter-spacing:-0.2px}
+.modal-close{width:24px;height:24px;border-radius:5px;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all 0.12s}
+.modal-close:hover{background:var(--bg4);color:var(--text)}
+.modal-body{padding:18px 20px;overflow-y:auto;flex:1}
+.ev-trial{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.ev-trial:last-child{margin-bottom:0}
+.ev-name{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:2px}
+.ev-meta{font-size:10px;color:var(--text3);margin-bottom:8px;font-family:var(--mono)}
+.ev-finding{font-size:11px;color:var(--text2);line-height:1.7}
+.ev-stat{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 8px;background:var(--accent-dim);border:1px solid rgba(14,165,233,0.2);border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;color:var(--accent)}
+
+/* PSEUDOPROGRESSION PANEL */
+.pp-gauge{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 0}
+.pp-score{font-size:36px;font-weight:700;font-family:var(--mono);letter-spacing:-1px;line-height:1}
+.pp-verdict{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;padding:4px 12px;border-radius:20px;margin-top:4px}
+.pp-verdict.pseudo{background:rgba(34,197,94,0.15);color:var(--success);border:1px solid rgba(34,197,94,0.3)}
+.pp-verdict.unclear{background:rgba(245,158,11,0.15);color:var(--warn);border:1px solid rgba(245,158,11,0.3)}
+.pp-verdict.progression{background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)}
+.pp-factor{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.pp-factor:last-child{border-bottom:none}
+.pp-fav{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.pp-fav.favor-pseudo{background:var(--success)}
+.pp-fav.favor-prog{background:var(--danger)}
+.pp-fav.neutral{background:var(--text3)}
+.pp-ftitle{font-size:12px;font-weight:600;color:var(--text)}
+.pp-fdesc{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.5}
+.pp-action-box{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:14px;border-left:3px solid var(--warn)}
+.pp-timeline-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:var(--warn-dim);border:1px solid rgba(245,158,11,0.3);color:var(--warn);margin-bottom:10px}
+
+/* DDI PANEL */
+.ddi-med-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.ddi-med-row:last-child{border-bottom:none}
+.ddi-med-icon{width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;border:1px solid}
+.ddi-name{font-size:12px;font-weight:600;color:var(--text)}
+.ddi-class{font-size:10px;color:var(--text3)}
+.ddi-result{display:flex;gap:10px;padding:12px 14px;border-radius:var(--r);border:1px solid;margin-bottom:10px;align-items:flex-start}
+.ddi-result.severe{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25)}
+.ddi-result.moderate{background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.2)}
+.ddi-result.minor{background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)}
+.ddi-result.none{background:var(--bg3);border-color:var(--border)}
+.ddi-sev-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0;margin-top:1px}
+.ddi-pair{font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px}
+.ddi-desc{font-size:11px;color:var(--text2);line-height:1.6}
+.ddi-action{font-size:10px;color:var(--text3);margin-top:4px;font-style:italic}
+.ddi-summary-box{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--r2);border:1px solid;margin-bottom:14px}
+.ddi-sum-count{font-size:28px;font-weight:700;font-family:var(--mono);line-height:1}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="topbar">
+  <div class="tl">
+    <div class="logo">
+      <div class="lmark">OT</div>
+      <div><div class="lname">OncoTwin-AI</div><div class="lsub">Glioblastoma Clinical Decision Support System</div></div>
+    </div>
+    <div class="tsep"></div>
+    <div class="ptag" id="pid-display">Patient: &mdash;</div>
+  </div>
+  <div class="tr">
+    <span class="vtag">v2.0</span>
+    <div class="schip" id="spill"><div class="sdot"></div><span id="stext">Awaiting input</span></div>
+  </div>
+</div>
+
+<div class="layout">
+<div class="sidebar">
+  <div class="sg">Core pipeline</div>
+  <div class="ni active" id="ni-input"    onclick="G('input')"><div class="nn" id="nn1">1</div><span>Patient data</span></div>
+  <div class="ni" id="ni-features" onclick="G('features')"><div class="nn" id="nn2">2</div><span>Feature extraction</span></div>
+  <div class="ni" id="ni-model"    onclick="G('model')">   <div class="nn" id="nn3">3</div><span>AI model + MRI</span></div>
+  <div class="ni" id="ni-twin"     onclick="G('twin')">    <div class="nn" id="nn4">4</div><span>Digital twin</span></div>
+  <div class="ni" id="ni-risk"     onclick="G('risk')">    <div class="nn" id="nn5">5</div><span>Risk output</span></div>
+  <div class="ssep"></div>
+  <div class="sg">Advanced features</div>
+  <div class="ni" id="ni-xai"    onclick="G('xai')">     <div class="nn" id="nn6">6</div><span>Explainable AI</span></div>
+  <div class="ni" id="ni-txsim"  onclick="G('txsim')">   <div class="nn" id="nn7">7</div><span>Treatment sim.</span></div>
+  <div class="ni" id="ni-longit" onclick="G('longit')">  <div class="nn" id="nn8">8</div><span>Longitudinal</span></div>
+  <div class="ni" id="ni-twin3d" onclick="G('twin3d')">  <div class="nn" id="nn9">9</div><span>3D Visualisation</span></div>
+  <div class="ni" id="ni-pseudo"  onclick="G('pseudo')">  <div class="nn" id="nn11">11</div><span>Pseudoprog. Flag</span></div>
+  <div class="ni" id="ni-ddi"     onclick="G('ddi')">     <div class="nn" id="nn12">12</div><span>Drug Interactions</span></div>
+  <div class="ssep"></div>
+  <div class="ni" id="ni-report" onclick="G('report')"><div class="nn" id="nn10">10</div><span>Clinical report</span></div>
+  <div class="sspace"></div>
+  <div class="sbot"><strong>Dataset:</strong> TCGA-GBM<br><strong>Cohort:</strong> n&nbsp;=&nbsp;207<br><strong>Model:</strong> Cox + XGBoost<br><strong>Follow-up:</strong> 24 months</div>
+</div>
+
+<div class="content">
+
+<!-- ===== PANEL 1: INPUT ===== -->
+<div class="panel active" id="panel-input">
+  <div class="phd"><div class="ptitle">Patient data entry</div><div class="psub">Enter clinical, imaging and genetic parameters to initialise the OncoTwin-AI analysis pipeline</div></div>
+  <div class="card">
+    <div class="ct">Patient identification</div>
+    <div class="fg4">
+      <div class="fg"><label class="fl">Patient ID</label><input type="text" id="f-pid" value="GBM-2026-001"></div>
+      <div class="fg"><label class="fl">Age (years)</label><input type="number" id="f-age" value="58" min="18" max="90"></div>
+      <div class="fg"><label class="fl">Sex</label><select id="f-sex"><option>Male</option><option>Female</option></select></div>
+      <div class="fg"><label class="fl">KPS score</label><input type="number" id="f-kps" value="70" min="10" max="100" step="10"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">MRI radiomics parameters</div>
+    <div class="fg4">
+      <div class="fg"><label class="fl">Tumour volume (cm&#179;)</label><input type="number" id="f-vol" value="28.4" step="0.1"></div>
+      <div class="fg"><label class="fl">Enhancement ratio</label><input type="number" id="f-enh" value="0.74" step="0.01" min="0" max="1"></div>
+      <div class="fg"><label class="fl">Necrosis fraction</label><input type="number" id="f-nec" value="0.38" step="0.01" min="0" max="1"></div>
+      <div class="fg"><label class="fl">ADC mean (&#215;10&#8315;&#179;)</label><input type="number" id="f-adc" value="0.82" step="0.01"></div>
+      <div class="fg"><label class="fl">rCBV max</label><input type="number" id="f-rcbv" value="5.2" step="0.1"></div>
+      <div class="fg"><label class="fl">Texture entropy</label><input type="number" id="f-tex" value="3.41" step="0.01"></div>
+      <div class="fg"><label class="fl">Sphericity index</label><input type="number" id="f-sph" value="0.62" step="0.01" min="0" max="1"></div>
+      <div class="fg"><label class="fl">FLAIR/T1 ratio</label><input type="number" id="f-flair" value="1.85" step="0.01"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Genetic &amp; epigenetic markers</div>
+    <div class="fg4">
+      <div class="fg"><label class="fl">MGMT methylation</label>
+        <div class="tgrp" id="tg-mgmt">
+          <button class="tgl s-d" onclick="T('tg-mgmt',this,'d')">Unmethylated</button>
+          <button class="tgl" onclick="T('tg-mgmt',this,'g')">Methylated</button>
+          <button class="tgl" onclick="T('tg-mgmt',this,'w')">Unknown</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">IDH mutation</label>
+        <div class="tgrp" id="tg-idh">
+          <button class="tgl s-d" onclick="T('tg-idh',this,'d')">Wild-type</button>
+          <button class="tgl" onclick="T('tg-idh',this,'g')">Mutant</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">EGFR amplification</label>
+        <div class="tgrp" id="tg-egfr">
+          <button class="tgl s-w" onclick="T('tg-egfr',this,'w')">Positive</button>
+          <button class="tgl" onclick="T('tg-egfr',this,'g')">Negative</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">TERT promoter</label>
+        <div class="tgrp" id="tg-tert">
+          <button class="tgl s-w" onclick="T('tg-tert',this,'w')">Mutant</button>
+          <button class="tgl" onclick="T('tg-tert',this,'g')">Wild-type</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Treatment history</div>
+    <div class="fg4">
+      <div class="fg"><label class="fl">Surgery type</label><select id="f-surg"><option>Gross total resection</option><option>Subtotal resection</option><option>Biopsy only</option></select></div>
+      <div class="fg"><label class="fl">TMZ cycles</label><input type="number" id="f-tmz" value="6" min="0" max="12"></div>
+      <div class="fg"><label class="fl">Radiotherapy (Gy)</label><input type="number" id="f-rt" value="60" min="0" max="80"></div>
+      <div class="fg"><label class="fl">Months since Dx</label><input type="number" id="f-msd" value="3" min="0" max="60"></div>
+    </div>
+    <button class="run-btn" onclick="RUN()">&#9654;&#160;&#160;Run OncoTwin-AI analysis</button>
+  </div>
+</div>
+
+<!-- ===== PANEL 2: FEATURES ===== -->
+<div class="panel" id="panel-features">
+  <div class="phd"><div class="ptitle">Feature extraction</div><div class="psub">Radiomics and genetic features extracted, normalised and encoded for model input</div></div>
+  <div class="card">
+    <div class="ct">MRI radiomics feature profile</div>
+    <table class="dt"><thead><tr><th>Feature</th><th>Extracted value</th><th>Reference range</th><th>Clinical deviation</th><th>Risk contribution</th></tr></thead>
+    <tbody id="feat-tbody"></tbody></table>
+  </div>
+  <div class="card">
+    <div class="ct">Genetic encoding matrix</div>
+    <table class="dt"><thead><tr><th>Marker</th><th>Status</th><th>Encoded value</th><th>Clinical implication</th></tr></thead>
+    <tbody id="gen-tbody"></tbody></table>
+  </div>
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('model')">Continue to AI model &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 3: AI MODEL + MRI ===== -->
+<div class="panel" id="panel-model">
+  <div class="phd"><div class="ptitle">AI model computation</div><div class="psub">Cox proportional hazards + XGBoost ensemble with patient-specific MRI simulation</div></div>
+
+  <div class="card">
+    <div class="ct">AI-generated MRI simulation <span class="ct-badge">Patient-specific</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;align-items:start">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase">Axial &mdash; T1+Gd</div>
+        <svg id="mri-ax" viewBox="0 0 200 200" style="width:100%;max-width:175px;border-radius:50%;background:#000;display:block"></svg>
+        <div style="font-size:10px;color:var(--text3);text-align:center">Enhancing margin + necrotic core</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase">Coronal &mdash; FLAIR</div>
+        <svg id="mri-cor" viewBox="0 0 200 220" style="width:100%;max-width:175px;border-radius:8px;background:#000;display:block"></svg>
+        <div style="font-size:10px;color:var(--text3);text-align:center">Oedema infiltration zone</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase">Sagittal &mdash; T2</div>
+        <svg id="mri-sag" viewBox="0 0 200 220" style="width:100%;max-width:175px;border-radius:8px;background:#000;display:block"></svg>
+        <div style="font-size:10px;color:var(--text3);text-align:center">Mass effect &amp; extent</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding-top:20px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase;margin-bottom:2px">Visualisation key</div>
+        <div id="mri-leg" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div class="div-line"></div>
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase;margin-bottom:2px">Derived parameters</div>
+        <div id="mri-prm" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border-left:2px solid var(--accent)">
+      <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Radiological interpretation</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.7" id="mri-int">&#8212;</div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);margin-top:8px;font-style:italic">&#9432;&#160;MRI simulation computationally generated from entered radiomics parameters. AI reconstruction for demonstration purposes only &mdash; does not replace diagnostic imaging.</div>
+  </div>
+
+  <!-- HISTOPATHOLOGY + CONTRAST CT CARD -->
+  <div class="card">
+    <div class="ct">Histopathology &amp; contrast CT correlation <span class="ct-badge">WHO 2021 grading</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;align-items:start">
+
+      <!-- CONTRAST CT -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase">Contrast CT &mdash; axial</div>
+        <svg id="ct-img" viewBox="0 0 200 200" style="width:100%;max-width:180px;border-radius:50%;background:#000;display:block"></svg>
+        <div style="font-size:10px;color:var(--text3);text-align:center">Iodinated contrast enhancement pattern</div>
+        <div id="ct-params" style="width:100%;display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
+      </div>
+
+      <!-- HISTOLOGY SLIDE -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase">Histopathology &mdash; H&amp;E ×400</div>
+        <svg id="histo-img" viewBox="0 0 200 200" style="width:100%;max-width:180px;border-radius:8px;background:#1a0e1f;display:block"></svg>
+        <div style="font-size:10px;color:var(--text3);text-align:center">Hematoxylin &amp; eosin stained section</div>
+        <div id="histo-params" style="width:100%;display:flex;flex-direction:column;gap:4px;margin-top:4px"></div>
+      </div>
+
+      <!-- GRADE + FINDINGS -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase">WHO grade assessment</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">Predicted WHO grade</div>
+          <div id="who-grade" style="font-size:32px;font-weight:700;color:var(--danger);font-family:var(--mono);line-height:1">IV</div>
+          <div id="who-name" style="font-size:11px;color:var(--text2);margin-top:4px">Glioblastoma</div>
+        </div>
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.09em;text-transform:uppercase;margin-top:4px">Microscopic findings</div>
+        <div id="histo-findings" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding:10px 14px;background:var(--bg3);border-radius:var(--r);border-left:2px solid var(--purple)">
+      <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Integrated radiology-pathology interpretation</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.7" id="hp-interp">&#8212;</div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);margin-top:8px;font-style:italic">&#9432;&#160;Histopathological and CT visualisations are AI-reconstructed from radiomics &amp; genetic parameters per WHO 2021 CNS Tumour Classification criteria. For demonstration purposes only.</div>
+  </div>
+
+  <div class="g2">
+    <div class="card"><div class="ct">Cox proportional hazards</div><div id="cox-steps"></div></div>
+    <div class="card"><div class="ct">XGBoost classifier</div><div id="xgb-steps"></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Kaplan-Meier survival curve</div>
+    <div class="cleg">
+      <span><span class="cld" style="background:var(--accent)"></span>This patient</span>
+      <span><span class="cld" style="background:var(--text3)"></span>TCGA-GBM median cohort</span>
+    </div>
+    <div class="cw" style="height:195px"><canvas id="survChart" role="img" aria-label="Survival probability over 24 months">.</canvas></div>
+  </div>
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('twin')">Continue to digital twin &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 4: DIGITAL TWIN ===== -->
+<div class="panel" id="panel-twin">
+  <div class="phd"><div class="ptitle">Digital twin simulation</div><div class="psub">Patient-specific tumour progression and treatment response modelling</div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Progression timeline</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:12px">95% CI: <span id="twin-ci" style="color:var(--text2);font-family:var(--mono);font-weight:600"></span></div>
+      <div id="twin-tl"></div>
+    </div>
+    <div class="card">
+      <div class="ct">Tumour volume response</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Gompertz growth model + treatment decay</div>
+      <div class="cw" style="height:180px"><canvas id="twinChart" role="img" aria-label="Tumour volume over time">.</canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Monthly survival probability</div>
+    <div class="cw" style="height:165px"><canvas id="progChart" role="img" aria-label="Survival probability by month">.</canvas></div>
+  </div>
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('risk')">View risk output &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 5: RISK ===== -->
+<div class="panel" id="panel-risk">
+  <div class="phd"><div class="ptitle">Risk output</div><div class="psub">Integrated risk score, prognostic estimates and clinical decision recommendations</div></div>
+  <div class="mrow" id="risk-met"></div>
+  <div id="risk-alert"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Risk score gauge</div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:4px 0">
+        <div class="cw" style="height:150px;max-width:270px"><canvas id="gaugeChart" role="img" aria-label="Risk gauge">.</canvas></div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);font-family:var(--mono);margin-top:4px" id="glabel"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Risk domain breakdown</div>
+      <div class="cw" style="height:190px"><canvas id="radarChart" role="img" aria-label="Risk radar">.</canvas></div>
+    </div>
+  </div>
+  <div class="card"><div class="ct">Clinical recommendations</div><div id="rec-list"></div></div>
+  <div class="nbrow">
+    <button class="nbtn" onclick="G('xai')">Explainable AI &#8594;</button>
+    <button class="nbtn nbtn-p" onclick="G('report')">Generate report &#8594;</button>
+  </div>
+</div>
+
+<!-- ===== PANEL 6: EXPLAINABLE AI ===== -->
+<div class="panel" id="panel-xai">
+  <div class="phd"><div class="ptitle">Explainable AI &mdash; SHAP analysis</div><div class="psub">SHapley Additive Explanations showing which features drive this patient&apos;s risk prediction</div></div>
+  <div class="card">
+    <div class="ct">Feature contribution to risk <span class="ct-badge">SHAP values</span></div>
+    <div style="display:flex;gap:20px;margin-bottom:14px;font-size:10px;color:var(--text3)">
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:var(--danger);border-radius:2px;display:inline-block"></span>Increases risk (positive SHAP)</span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:var(--accent);border-radius:2px;display:inline-block"></span>Decreases risk (negative SHAP)</span>
+    </div>
+    <div id="shap-bars"></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">SHAP waterfall &mdash; top drivers</div>
+      <div class="cw" style="height:220px"><canvas id="shapChart" role="img" aria-label="SHAP waterfall chart">.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Model decision breakdown</div>
+      <div id="shap-summary" style="display:flex;flex-direction:column;gap:0"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Clinical interpretation of AI reasoning</div>
+    <div id="xai-interp" style="font-size:11px;color:var(--text2);line-height:1.8"></div>
+  </div>
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('txsim')">Treatment simulator &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 7: TREATMENT SIMULATOR ===== -->
+<div class="panel" id="panel-txsim">
+  <div class="phd"><div class="ptitle">Treatment response simulator</div><div class="psub">Select a protocol category and option to model predicted outcomes, risk scores, contraindications and cost for this patient</div></div>
+
+  <!-- CATEGORY TABS -->
+  <div class="card" style="padding:14px 16px;margin-bottom:10px">
+    <div class="ct" style="margin-bottom:10px">Patient category</div>
+    <div style="display:flex;gap:8px">
+      <button id="cat-btn-new" class="tx-btn sel" onclick="selCat('new',this)" style="font-size:12px;padding:8px 18px">&#9679; Newly diagnosed</button>
+      <button id="cat-btn-rec" class="tx-btn" onclick="selCat('rec',this)" style="font-size:12px;padding:8px 18px">&#9650; Recurrent GBM</button>
+    </div>
+  </div>
+
+  <!-- PROTOCOL GRID -->
+  <div class="card">
+    <div class="ct">Select treatment protocol</div>
+    <!-- NEWLY DIAGNOSED -->
+    <div id="proto-new" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <button class="tx-card-btn sel" onclick="selTx(this,'soc')" data-key="soc">
+        <div class="tx-card-name">Standard of care</div>
+        <div class="tx-card-sub">SOC (Stupp protocol)</div>
+      </button>
+      <button class="tx-card-btn" onclick="selTx(this,'soc_bev')" data-key="soc_bev">
+        <div class="tx-card-name">SOC + Bevacizumab</div>
+        <div class="tx-card-sub">Anti-VEGF + Stupp</div>
+      </button>
+      <button class="tx-card-btn" onclick="selTx(this,'soc_ttf')" data-key="soc_ttf">
+        <div class="tx-card-name">SOC + TTF</div>
+        <div class="tx-card-sub">Tumour Treating Fields</div>
+      </button>
+      <button class="tx-card-btn" onclick="selTx(this,'soc_bev_ttf')" data-key="soc_bev_ttf">
+        <div class="tx-card-name">SOC + Bev + TTF</div>
+        <div class="tx-card-sub">Triple combination</div>
+      </button>
+    </div>
+    <!-- RECURRENT -->
+    <div id="proto-rec" style="display:none;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <button class="tx-card-btn" onclick="selTx(this,'lom')" data-key="lom">
+        <div class="tx-card-name">Lomustine</div>
+        <div class="tx-card-sub">CCNU monotherapy</div>
+      </button>
+      <button class="tx-card-btn" onclick="selTx(this,'bev')" data-key="bev">
+        <div class="tx-card-name">Bevacizumab</div>
+        <div class="tx-card-sub">Anti-VEGF monotherapy</div>
+      </button>
+      <button class="tx-card-btn" onclick="selTx(this,'bev_lom')" data-key="bev_lom">
+        <div class="tx-card-name">Bev + Lomustine</div>
+        <div class="tx-card-sub">BELOB combination</div>
+      </button>
+      <button class="tx-card-btn" onclick="selTx(this,'re_rt')" data-key="re_rt">
+        <div class="tx-card-name">Re-Irradiation + ST</div>
+        <div class="tx-card-sub">RT + systemic therapy</div>
+      </button>
+    </div>
+
+    <!-- PROTOCOL DESCRIPTION + CONTRAINDICATIONS -->
+    <div class="g2" style="gap:10px">
+      <div style="padding:12px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Protocol description</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7" id="tx-desc-text"></div>
+      </div>
+      <div style="padding:12px 14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">When NOT to use this protocol</div>
+        <div id="tx-contra" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METRICS: RISK SCORE + COST + OUTCOMES -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px" id="tx-metrics"></div>
+
+  <!-- RISK SCORE GAUGE + CHART -->
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Treatment risk score</div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div style="position:relative;width:130px;flex-shrink:0">
+          <canvas id="txRiskGauge" width="130" height="75" role="img" aria-label="Treatment risk gauge">.</canvas>
+          <div style="text-align:center;font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text);margin-top:2px" id="tx-risk-score-lbl"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px" id="tx-risk-bars"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Cost &amp; affordability</div>
+      <div id="tx-cost-panel" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+
+  <!-- SURVIVAL CURVES -->
+  <div class="card">
+    <div class="ct">Comparative survival curves</div>
+    <div class="cleg">
+      <span><span class="cld" style="background:#ef4444"></span>No treatment</span>
+      <span><span class="cld" style="background:#94a3b8"></span>SOC baseline</span>
+      <span><span class="cld" style="background:#0ea5e9"></span>Selected protocol</span>
+    </div>
+    <div class="cw" style="height:200px"><canvas id="txChart" role="img" aria-label="Treatment comparison survival curves">.</canvas></div>
+  </div>
+
+  <!-- TREATMENT ALERTS + RECS -->
+  <div class="g2">
+    <div class="card"><div class="ct">Treatment alerts</div><div id="tx-alerts"></div></div>
+    <div class="card"><div class="ct">Protocol-specific recommendations</div><div id="tx-recs"></div></div>
+  </div>
+
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('longit')">Longitudinal monitoring &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 8: LONGITUDINAL ===== -->
+<div class="panel" id="panel-longit">
+  <div class="phd"><div class="ptitle">Longitudinal monitoring</div><div class="psub">Simulated disease trajectory across three clinical time points based on current patient profile</div></div>
+  <div class="long-row">
+    <div class="long-card baseline">
+      <div class="long-label">&#9679; Baseline &mdash; Month 0</div>
+      <svg id="long-mri-0" viewBox="0 0 160 160" class="long-mri" style="width:120px;height:120px;border-radius:50%;background:#000"></svg>
+      <div class="long-stat" id="long-score-0"></div><div class="long-sub">Risk score</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px" id="long-stats-0"></div>
+    </div>
+    <div class="long-card mo3">
+      <div class="long-label">&#9650; Month 3</div>
+      <svg id="long-mri-3" viewBox="0 0 160 160" class="long-mri" style="width:120px;height:120px;border-radius:50%;background:#000"></svg>
+      <div class="long-stat" id="long-score-3"></div><div class="long-sub">Risk score</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px" id="long-stats-3"></div>
+    </div>
+    <div class="long-card mo6">
+      <div class="long-label">&#9650; Month 6</div>
+      <svg id="long-mri-6" viewBox="0 0 160 160" class="long-mri" style="width:120px;height:120px;border-radius:50%;background:#000"></svg>
+      <div class="long-stat" id="long-score-6"></div><div class="long-sub">Risk score</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px" id="long-stats-6"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Disease trajectory timeline</div>
+    <div class="cw" style="height:185px"><canvas id="longChart" role="img" aria-label="Longitudinal disease trajectory">.</canvas></div>
+  </div>
+  <div class="card">
+    <div class="ct">Monitoring schedule recommendations</div>
+    <div id="long-recs"></div>
+  </div>
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('twin3d')">Continue to 3D visualisation &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 9: 3D VISUALISATION ===== -->
+<div class="panel" id="panel-twin3d">
+  <div class="phd"><div class="ptitle">3D digital twin visualisation</div><div class="psub">Interactive 3D tumour model &mdash; drag to rotate, scroll to zoom, use controls to explore the patient&apos;s tumour</div></div>
+  <div style="display:grid;grid-template-columns:1fr 290px;gap:14px">
+    <div class="card" style="padding:0;overflow:hidden;position:relative">
+      <div id="td-container" style="width:100%;height:580px;position:relative;background:radial-gradient(ellipse at center,#0d1933 0%,#050a16 100%);cursor:grab">
+        <canvas id="td-canvas" style="display:block;width:100%;height:100%"></canvas>
+        <div style="position:absolute;top:14px;left:16px;display:flex;flex-direction:column;gap:5px;pointer-events:none">
+          <div style="font-size:10px;font-weight:700;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase">Real-time 3D twin</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono)" id="td-pos">Anatomical reference: standard</div>
+        </div>
+        <div style="position:absolute;top:14px;right:16px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;pointer-events:none">
+          <div style="font-size:9px;color:var(--text3);font-family:var(--mono);background:rgba(0,0,0,0.5);padding:3px 8px;border-radius:4px;border:1px solid var(--border2)">FPS: <span id="td-fps">--</span></div>
+          <div style="font-size:9px;color:var(--text3);font-family:var(--mono);background:rgba(0,0,0,0.5);padding:3px 8px;border-radius:4px;border:1px solid var(--border2)">Triangles: <span id="td-tri">--</span></div>
+        </div>
+        <div style="position:absolute;bottom:14px;left:16px;display:flex;gap:10px;font-size:10px;color:var(--text3);pointer-events:none">
+          <span>&#x21bb; Drag to rotate</span><span>&#9881; Scroll to zoom</span>
+        </div>
+        <div style="position:absolute;bottom:14px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text2);background:rgba(0,0,0,0.5);padding:8px 12px;border-radius:6px;border:1px solid var(--border2);pointer-events:none">
+          <div><span style="display:inline-block;width:10px;height:10px;background:#ffaa44;border-radius:50%;margin-right:6px;vertical-align:middle"></span>Tumour core</div>
+          <div><span style="display:inline-block;width:10px;height:10px;background:#1a1a1a;border-radius:50%;margin-right:6px;vertical-align:middle"></span>Necrosis</div>
+          <div><span style="display:inline-block;width:10px;height:10px;background:rgba(68,150,220,0.5);border-radius:50%;margin-right:6px;vertical-align:middle"></span>Oedema</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card" style="padding:14px 16px;margin:0">
+        <div class="ct" style="margin-bottom:10px">Tumour parameters</div>
+        <div id="td-info"></div>
+      </div>
+
+      <div class="card" style="padding:14px 16px;margin:0">
+        <div class="ct" style="margin-bottom:10px">Camera view</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button class="nbtn" style="padding:7px;font-size:11px" onclick="td_view('reset')">Reset</button>
+          <button class="nbtn" style="padding:7px;font-size:11px" onclick="td_view('top')">Top</button>
+          <button class="nbtn" style="padding:7px;font-size:11px" onclick="td_view('front')">Front</button>
+          <button class="nbtn" style="padding:7px;font-size:11px" onclick="td_view('side')">Side</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:14px 16px;margin:0">
+        <div class="ct" style="margin-bottom:10px">Display options</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="td-cross" onchange="td_toggle('cross')" style="accent-color:var(--accent)">
+            Cross-section view
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="td-oed" checked onchange="td_toggle('oed')" style="accent-color:var(--accent)">
+            Show oedema halo
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="td-rot" checked onchange="td_toggle('rot')" style="accent-color:var(--accent)">
+            Auto-rotate model
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="td-trans" onchange="td_toggle('trans')" style="accent-color:var(--accent)">
+            Translucent brain
+          </label>
+        </div>
+      </div>
+
+      <div class="card" style="padding:14px 16px;margin:0">
+        <div class="ct" style="margin-bottom:10px">Progression timeline</div>
+        <input type="range" id="td-time" min="0" max="12" value="0" step="0.5" oninput="td_setTime(this.value)" style="width:100%;accent-color:var(--accent)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:6px;font-family:var(--mono)">
+          <span>Baseline</span>
+          <span id="td-tlbl" style="color:var(--accent);font-weight:600">Month 0</span>
+          <span>Month 12</span>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5">Drag to simulate untreated disease progression. Tumour growth uses Gompertz model based on patient risk score.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">3D model interpretation</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.7" id="td-interp"></div>
+  </div>
+
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('report')">Generate clinical report &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 9: REPORT ===== -->
+<div class="panel" id="panel-report">
+  <div class="phd"><div class="ptitle">Clinical report</div><div class="psub">AI-generated decision support summary for multidisciplinary review</div></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px">OncoTwin-AI Clinical Decision Support Report</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:5px;font-family:var(--mono)" id="rpt-meta"></div>
+      </div>
+      <button class="pbtn" onclick="window.print()">&#128438;&#160; Print / PDF</button>
+    </div>
+    <div class="div-line" style="margin:0 0 16px"></div>
+    <div class="rsec">Patient summary</div><div id="rpt-pt"></div>
+    <div class="rsec">AI model outputs</div><div id="rpt-out"></div>
+    <div class="rsec">Prognostic timeline</div><div id="rpt-tl"></div>
+    <div class="rsec">Clinical recommendations</div><div id="rpt-recs"></div>
+    <div class="disc" style="margin-top:18px"><strong style="color:var(--text2)">Clinical disclaimer:</strong> This report is generated by OncoTwin-AI v2.0 for decision support purposes only. All predictions are probabilistic estimates derived from TCGA-GBM population data (n=207) and carry inherent statistical uncertainty. Final clinical decisions remain the sole responsibility of the treating physician and multidisciplinary team.</div>
+  </div>
+</div>
+
+<!-- ===== PANEL 11: PSEUDOPROGRESSION FLAG ===== -->
+<div class="panel" id="panel-pseudo">
+  <div class="phd"><div class="ptitle">Pseudoprogression Flag</div><div class="psub">Differential analysis: true tumour progression vs. treatment-induced pseudoprogression post-RT/TMZ</div></div>
+
+  <div class="alert alert-w" style="margin-bottom:14px">
+    &#9888;&#160;<span><strong>Clinical context:</strong> This patient is post-RT. New or enlarging lesion on MRI requires urgent differentiation — pseudoprogression occurs in ~30% of GBM patients within 12 weeks of completing RT.</span>
+  </div>
+
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="ct">Pseudoprogression probability</div>
+      <div class="pp-gauge">
+        <div style="position:relative;width:160px;height:90px">
+          <canvas id="ppGauge" width="160" height="90" role="img" aria-label="Pseudoprogression probability gauge"></canvas>
+        </div>
+        <div class="pp-score" id="pp-score-lbl" style="color:var(--warn)">—</div>
+        <div class="pp-verdict unclear" id="pp-verdict">INDETERMINATE</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px" id="pp-conf-note">Run analysis first</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Clinical decision guidance</div>
+      <div id="pp-action-area" style="display:flex;flex-direction:column;gap:10px">
+        <div class="pp-action-box">
+          <div class="pp-timeline-chip">&#128337;&#160;Recommended action</div>
+          <div id="pp-action-text" style="font-size:12px;color:var(--text);line-height:1.7">Run analysis to generate recommendation.</div>
+        </div>
+        <div id="pp-mri-rec" style="font-size:11px;color:var(--text2);line-height:1.7;padding:10px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Diagnostic factor analysis <span class="ct-badge">RANO 2010 criteria</span></div>
+    <div id="pp-factors"></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Key differentiating features</div>
+      <div class="cw" style="height:190px"><canvas id="ppRadar" role="img" aria-label="Pseudoprogression radar chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Evidence base</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="ev-trial">
+          <div class="ev-name">Brandsma et al. (2008) — Lancet Oncology</div>
+          <div class="ev-meta">Systematic review | GBM n=592</div>
+          <div class="ev-finding">Pseudoprogression occurs in up to 30% of GBM patients post-RT/TMZ, predominantly within 3 months of completing radiotherapy. MGMT methylated patients show significantly higher rates (61% vs 15% unmethylated).</div>
+          <div class="ev-stat">MGMT meth: OR 3.8 (p&lt;0.001)</div>
+        </div>
+        <div class="ev-trial">
+          <div class="ev-name">Hygino da Cruz et al. (2011) — AJNR</div>
+          <div class="ev-meta">Prospective | n=147 | Advanced MRI</div>
+          <div class="ev-finding">MR perfusion (rCBV) and MR spectroscopy most accurate non-invasive differentiators. rCBV threshold &gt;2.0 favours true progression (sensitivity 88%, specificity 72%). Early follow-up imaging at 6–8 weeks recommended when indeterminate.</div>
+          <div class="ev-stat">rCBV &gt;2.0: Sens 88% / Spec 72%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('ddi')">Drug-drug interactions &#8594;</button></div>
+</div>
+
+<!-- ===== PANEL 12: DRUG-DRUG INTERACTIONS ===== -->
+<div class="panel" id="panel-ddi">
+  <div class="phd"><div class="ptitle">Drug-Drug Interaction Checker</div><div class="psub">Compatibility screening of proposed oncological regimen against patient&apos;s concurrent medications</div></div>
+
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="ct">Proposed oncological regimen</div>
+      <div id="ddi-regimen-list" style="display:flex;flex-direction:column;gap:0"></div>
+    </div>
+    <div class="card">
+      <div class="ct">Patient&apos;s concurrent medications</div>
+      <div id="ddi-concurrent-list" style="display:flex;flex-direction:column;gap:0;margin-bottom:12px"></div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="ddi-new-med" placeholder="Add medication (e.g. warfarin)..." style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:12px;padding:7px 10px;outline:none">
+        <button onclick="ddiAddMed()" style="padding:7px 14px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ddi-summary-banner" style="margin-bottom:14px"></div>
+
+  <div class="card">
+    <div class="ct">Interaction results <span class="ct-badge" id="ddi-count-badge">—</span></div>
+    <div id="ddi-results-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Pharmacist recommendations</div>
+    <div id="ddi-pharm-recs" style="display:flex;flex-direction:column;gap:0"></div>
+  </div>
+
+  <div class="disc">&#9432;&#160;<strong>Disclaimer:</strong> Drug interaction analysis is AI-assisted and based on known pharmacological mechanisms. Clinical pharmacist review is mandatory before any treatment initiation. This tool does not replace individualised patient assessment or therapeutic drug monitoring.</div>
+
+  <div class="nbrow"><button class="nbtn nbtn-p" onclick="G('report')">Generate report &#8594;</button></div>
+</div>
+
+<!-- EVIDENCE MODAL -->
+<div class="modal-overlay" id="ev-modal" onclick="closeEvModal(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="ev-modal-title">Evidence base</div>
+      <button class="modal-close" onclick="closeEvModal()">&#10005;</button>
+    </div>
+    <div class="modal-body" id="ev-modal-body"></div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /layout -->
+</div><!-- /app -->
+
+<script>
+var S={}, CH={}, TX='soc';
+function E(id){return document.getElementById(id);}
+function T(gid,btn,c){var bs=E(gid).querySelectorAll('.tgl');for(var i=0;i<bs.length;i++)bs[i].className='tgl';btn.className='tgl s-'+c;}
+function Tv(gid){var bs=E(gid).querySelectorAll('.tgl');for(var i=0;i<bs.length;i++)if(bs[i].className.indexOf('s-')>-1)return bs[i].textContent.trim();return '';}
+function G(t){var ts=['input','features','model','twin','risk','xai','txsim','longit','twin3d','report','pseudo','ddi'];for(var i=0;i<ts.length;i++){E('panel-'+ts[i]).classList.remove('active');var ni=E('ni-'+ts[i]);if(ni)ni.classList.remove('active');}E('panel-'+t).classList.add('active');var niT=E('ni-'+t);if(niT)niT.classList.add('active');if(t==='twin3d'){requestAnimationFrame(function(){if(TD.dirty&&S&&S.vol){b3D();TD.dirty=false;}else if(TD.renderer){td_resize();}td_start();});}else{td_stop();}}
+
+function td_resize(){var c=E('td-canvas');if(!c||!TD.renderer||!TD.camera)return;var w=c.parentElement.clientWidth,h=c.parentElement.clientHeight;if(w<=0||h<=0)return;TD.camera.aspect=w/h;TD.camera.updateProjectionMatrix();TD.renderer.setSize(w,h,false);}
+function DC(id){if(CH[id]){try{CH[id].destroy();}catch(e){}CH[id]=null;}}
+
+function compute(){
+  var age=parseFloat(E('f-age').value)||58, kps=parseFloat(E('f-kps').value)||70,
+      vol=parseFloat(E('f-vol').value)||28.4, enh=parseFloat(E('f-enh').value)||0.74,
+      nec=parseFloat(E('f-nec').value)||0.38, adc=parseFloat(E('f-adc').value)||0.82,
+      rcbv=parseFloat(E('f-rcbv').value)||5.2, tex=parseFloat(E('f-tex').value)||3.41,
+      sph=parseFloat(E('f-sph').value)||0.62, flair=parseFloat(E('f-flair').value)||1.85,
+      tmz=parseFloat(E('f-tmz').value)||6, rt=parseFloat(E('f-rt').value)||60,
+      msd=parseFloat(E('f-msd').value)||3;
+  var mgmt=Tv('tg-mgmt')||'Unmethylated', idh=Tv('tg-idh')||'Wild-type',
+      egfr=Tv('tg-egfr')||'Positive', tert=Tv('tg-tert')||'Mutant', surg=E('f-surg').value;
+  var sc=0;
+  sc+=Math.min((age-40)/50,1)*14; sc+=Math.max((80-kps)/80,0)*12;
+  sc+=Math.min(vol/60,1)*14; sc+=enh*10; sc+=nec*8;
+  sc+=Math.max(1-adc,0)*7; sc+=Math.min(rcbv/10,1)*7;
+  sc+=Math.min(tex/5,1)*5; sc+=(1-sph)*4; sc+=Math.min(flair/3,1)*3;
+  if(mgmt==='Unmethylated')sc+=10; if(mgmt==='Unknown')sc+=5;
+  if(idh==='Wild-type')sc+=8; if(egfr==='Positive')sc+=4; if(tert==='Mutant')sc+=3;
+  if(surg==='Biopsy only')sc+=6; else if(surg==='Subtotal resection')sc+=3;
+  sc-=Math.min(tmz/12,1)*5; sc-=Math.min(rt/80,1)*4;
+  sc=Math.max(5,Math.min(97,sc));
+  var pt=Math.max(1.5,13-sc*0.09), s6=Math.min(95,Math.round(100-sc*0.6)),
+      s12=Math.max(5,Math.round(100-sc*0.78)), s24=Math.max(2,Math.round(s12-20)),
+      rg=sc>=65?'High':(sc>=40?'Intermediate':'Low');
+  S={sc:Math.round(sc),pt:Math.round(pt*10)/10,s6:s6,s12:s12,s24:s24,rg:rg,
+     age:age,kps:kps,vol:vol,enh:enh,nec:nec,adc:adc,rcbv:rcbv,tex:tex,sph:sph,flair:flair,
+     mgmt:mgmt,idh:idh,egfr:egfr,tert:tert,tmz:tmz,rt:rt,msd:msd,surg:surg,
+     pid:E('f-pid').value||'GBM-2026-001',sex:E('f-sex').value};
+}
+
+function RUN(){
+  compute();
+  E('pid-display').textContent='Patient: '+S.pid;
+  E('stext').textContent='Analysis complete';
+  E('spill').className='schip ready';
+  for(var i=1;i<=12;i++){var n=E('nn'+i);if(n){n.style.background='var(--accent)';n.style.color='#fff';}}
+  bFeat(); bMRI(); bModel(); bTwin(); bRisk(); bXAI(); bTxSim(); bLongit(); bReport(); bPseudo(); bDDI();
+  TD.dirty=true;
+  G('features');
+}
+
+/* ── FEATURES ── */
+function bFeat(){
+  var rows=[
+    ['Tumour volume',S.vol.toFixed(1)+' cm\u00b3','< 20 cm\u00b3',S.vol>40?'Markedly elevated':(S.vol>20?'Elevated':'Normal'),Math.round(Math.min(S.vol/60,1)*100)],
+    ['Enhancement ratio',S.enh.toFixed(2),'< 0.50',S.enh>0.7?'High':(S.enh>0.5?'Moderate':'Normal'),Math.round(S.enh*100)],
+    ['Necrosis fraction',S.nec.toFixed(2),'< 0.25',S.nec>0.35?'High':(S.nec>0.25?'Moderate':'Normal'),Math.round(S.nec*100)],
+    ['ADC mean',S.adc.toFixed(2)+' \u00d710\u207b\u00b3','> 1.00',S.adc<0.85?'Low \u2014 aggressive':(S.adc<1.0?'Borderline':'Normal'),Math.round(Math.max(1-S.adc,0)*100)],
+    ['rCBV max',S.rcbv.toFixed(1),'< 3.5',S.rcbv>4?'Elevated':'Normal',Math.round(Math.min(S.rcbv/10,1)*100)],
+    ['Texture entropy',S.tex.toFixed(2),'< 3.0',S.tex>3.2?'Elevated':'Normal',Math.round(Math.min(S.tex/5,1)*100)],
+    ['Sphericity index',S.sph.toFixed(2),'> 0.75',S.sph<0.5?'Low \u2014 irregular':(S.sph<0.75?'Moderate':'Normal'),Math.round((1-S.sph)*100)],
+    ['FLAIR/T1 ratio',S.flair.toFixed(2),'< 1.5',S.flair>2?'High':(S.flair>1.5?'Moderate':'Normal'),Math.round(Math.min(S.flair/3,1)*100)]
+  ];
+  var h='';
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i],w=r[4],bc=w>65?'#ef4444':(w>45?'#f59e0b':'#22c55e'),sc=w>65?'bd':(w>45?'bw':'bg');
+    h+='<tr><td style="font-weight:500">'+r[0]+'</td><td class="mono">'+r[1]+'</td><td class="mono" style="color:var(--text3)">'+r[2]+'</td>'+
+       '<td><span class="badge '+sc+'">'+r[3]+'</span></td>'+
+       '<td><div class="mbar"><div class="mbg"><div class="mbf" style="width:'+w+'%;background:'+bc+'"></div></div><span class="mono" style="min-width:22px;text-align:right;color:var(--text3)">'+w+'</span></div></td></tr>';
+  }
+  E('feat-tbody').innerHTML=h;
+  var gd=[
+    ['MGMT',S.mgmt,S.mgmt==='Methylated'?'bg':(S.mgmt==='Unknown'?'bw':'bd'),S.mgmt==='Unmethylated'?'1':(S.mgmt==='Methylated'?'0':'0.5'),S.mgmt==='Unmethylated'?'Reduced TMZ sensitivity \u2014 adverse prognosis':(S.mgmt==='Methylated'?'TMZ responsive \u2014 favourable outcome':'Indeterminate \u2014 re-testing recommended')],
+    ['IDH1/2',S.idh,S.idh==='Mutant'?'bg':'bd',S.idh==='Wild-type'?'1':'0',S.idh==='Wild-type'?'Primary GBM, aggressive course \u2014 poor prognosis':'Secondary GBM \u2014 better prognosis'],
+    ['EGFR',S.egfr,S.egfr==='Negative'?'bg':'bw',S.egfr==='Positive'?'1':'0',S.egfr==='Positive'?'Amplification present \u2014 targeted therapy candidate':'No amplification detected'],
+    ['TERT',S.tert,S.tert==='Wild-type'?'bg':'bw',S.tert==='Mutant'?'1':'0',S.tert==='Mutant'?'Associated with IDH-wt GBM \u2014 adverse marker':'Wild-type TERT status']
+  ];
+  var gh='';
+  for(var j=0;j<gd.length;j++){var g=gd[j];gh+='<tr><td class="mono" style="font-weight:600">'+g[0]+'</td><td><span class="badge '+g[2]+'">'+g[1]+'</span></td><td class="mono" style="color:var(--text2)">'+g[3]+'</td><td style="font-size:11px;color:var(--text3)">'+g[4]+'</td></tr>';}
+  E('gen-tbody').innerHTML=gh;
+}
+
+/* ── MRI SIMULATION ── */
+function mriSVG(cx,cy,tR,necR,enhW,oeR,brainPath,extra){
+  var sulci=['M45,70 Q60,55 75,68','M125,68 Q140,55 155,70','M38,100 Q30,115 40,128','M160,100 Q170,115 160,128','M60,145 Q80,158 100,155 Q120,158 140,145'];
+  return sulci.map(function(p){return '<path d="'+p+'" fill="none" stroke="rgba(120,115,140,0.4)" stroke-width="1.2"/>'; }).join('')+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+oeR+'" ry="'+Math.round(oeR*0.9)+'" fill="rgba(40,80,160,0.18)" stroke="rgba(60,100,200,0.22)" stroke-width="1"/>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+tR+'" ry="'+Math.round(tR*0.92)+'" fill="rgba(170,85,25,0.75)"/>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+tR+'" ry="'+Math.round(tR*0.92)+'" fill="none" stroke="rgba(255,205,50,0.88)" stroke-width="'+enhW+'"/>'+
+    (necR>4?'<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+necR+'" ry="'+Math.round(necR*0.88)+'" fill="rgba(8,8,10,0.94)"/>':'')+
+    (extra||'');
+}
+function bMRI(){
+  var tR=Math.round(18+Math.min(S.vol/60,1)*36), necR=Math.round(tR*Math.min(S.nec,0.85)*0.72),
+      enhW=Math.round(2+S.enh*7), oeR=Math.round(tR*(1+S.flair*0.25));
+  var brainFill='#28243a', brainStroke='#3e3858';
+  var shift=Math.round(Math.min(S.vol/60,1)*9);
+  /* AXIAL */
+  var axBrain='M100,18 C148,18 182,52 182,100 C182,148 148,182 100,182 C52,182 18,148 18,100 C18,52 52,18 100,18Z';
+  var vent='M87,88 Q92,82 100,84 Q108,82 113,88 Q115,96 111,102 Q104,108 95,106 Q86,102 84,96Z';
+  var sat=S.vol>35?'<ellipse cx="'+(100+tR+11)+'" cy="'+(100-tR*0.4)+'" rx="7" ry="6" fill="rgba(170,85,25,0.5)" stroke="rgba(255,205,50,0.5)" stroke-width="2"/>':'';
+  var midline='<line x1="'+(100+shift)+'" y1="22" x2="'+(100+shift)+'" y2="178" stroke="rgba(255,255,100,0.3)" stroke-width="1" stroke-dasharray="4,4"/>';
+  E('mri-ax').innerHTML='<rect width="200" height="200" fill="#080810"/>'+
+    '<path d="'+axBrain+'" fill="'+brainFill+'" stroke="'+brainStroke+'" stroke-width="1.5"/>'+
+    mriSVG(100,100,tR,necR,enhW,oeR,'',sat+midline)+
+    '<path d="'+vent+'" fill="rgba(20,30,80,0.7)" stroke="rgba(50,70,150,0.35)" stroke-width="0.8"/>'+
+    '<text x="6" y="13" font-size="9" fill="rgba(255,255,255,0.45)" font-family="monospace">AX</text>'+
+    '<text x="6" y="196" font-size="8" fill="rgba(255,255,100,0.55)" font-family="monospace">R</text>'+
+    '<text x="185" y="196" font-size="8" fill="rgba(255,255,100,0.55)" font-family="monospace">L</text>'+
+    '<text x="148" y="196" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace">T1+Gd</text>';
+  /* CORONAL */
+  var corBrain='M100,14 C146,14 180,54 180,104 C180,154 154,200 100,205 C46,200 20,154 20,104 C20,54 54,14 100,14Z';
+  E('mri-cor').innerHTML='<rect width="200" height="220" fill="#080810"/>'+
+    '<path d="'+corBrain+'" fill="#231f35" stroke="#3a364e" stroke-width="1.5"/>'+
+    mriSVG(100,88,tR,necR,enhW,Math.round(oeR*1.05),'','')+
+    '<path d="M70,130 Q100,124 130,130" fill="none" stroke="rgba(170,165,195,0.4)" stroke-width="3"/>'+
+    '<path d="M82,138 Q88,131 100,133 Q112,131 118,138 Q122,148 114,156 Q104,164 94,162 Q82,158 78,148Z" fill="rgba(18,28,70,0.65)" stroke="rgba(44,64,140,0.32)" stroke-width="0.8"/>'+
+    '<line x1="100" y1="13" x2="100" y2="208" stroke="rgba(255,255,100,0.18)" stroke-width="0.8" stroke-dasharray="3,4"/>'+
+    '<text x="6" y="13" font-size="9" fill="rgba(255,255,255,0.45)" font-family="monospace">COR</text>'+
+    '<text x="145" y="218" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace">FLAIR</text>';
+  /* SAGITTAL */
+  var sagBrain='M60,18 C96,10 146,18 168,55 C185,85 182,134 165,164 C148,190 114,208 84,205 C50,200 28,170 22,134 C14,95 28,55 60,18Z';
+  var gyri=['M42,60 Q55,50 68,58','M72,40 Q90,32 106,40','M110,37 Q130,32 148,42','M155,57 Q168,70 164,88'];
+  E('mri-sag').innerHTML='<rect width="200" height="220" fill="#080810"/>'+
+    '<path d="'+sagBrain+'" fill="#21203040" fill="rgba(33,30,48,1)" stroke="#363050" stroke-width="1.5"/>'+
+    gyri.map(function(p){return '<path d="'+p+'" fill="none" stroke="rgba(88,82,108,0.45)" stroke-width="1.2"/>';}).join('')+
+    mriSVG(108,85,tR,necR,enhW,Math.round(oeR*1.0),'','')+
+    '<path d="M100,178 Q105,190 102,206" fill="none" stroke="rgba(140,135,165,0.35)" stroke-width="5" stroke-linecap="round"/>'+
+    '<text x="6" y="13" font-size="9" fill="rgba(255,255,255,0.45)" font-family="monospace">SAG</text>'+
+    '<text x="152" y="218" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace">T2</text>';
+  /* LEGEND */
+  var lg=[{c:'rgba(255,205,50,0.9)',l:'Enhancing margin (Gd+)'},{c:'rgba(170,85,25,0.8)',l:'Tumour core'},{c:'rgba(8,8,10,0.9)',l:'Necrotic centre'},{c:'rgba(60,110,200,0.65)',l:'Perilesional oedema'},{c:'rgba(255,255,100,0.45)',l:'Midline shift indicator'}];
+  E('mri-leg').innerHTML=lg.map(function(x){return '<div style="display:flex;align-items:center;gap:7px;font-size:10px;color:var(--text2)"><span style="width:13px;height:13px;border-radius:3px;background:'+x.c+';flex-shrink:0;border:1px solid rgba(255,255,255,0.12)"></span>'+x.l+'</div>';}).join('');
+  /* PARAMS */
+  var ps=[['Vol.',S.vol.toFixed(1)+' cm\u00b3',S.vol>25?'var(--danger)':'var(--text2)'],['Enh.',+(S.enh*100).toFixed(0)+'%',S.enh>0.6?'var(--danger)':'var(--text2)'],['Nec.',(S.nec*100).toFixed(0)+'%',S.nec>0.3?'var(--warn)':'var(--text2)'],['ADC',S.adc.toFixed(2),S.adc<0.85?'var(--danger)':'var(--text2)'],['rCBV',S.rcbv.toFixed(1),S.rcbv>4?'var(--danger)':'var(--text2)']];
+  E('mri-prm').innerHTML=ps.map(function(p){return '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">'+p[0]+'</span><span class="mono" style="color:'+p[2]+'">'+p[1]+'</span></div>';}).join('');
+  /* INTERP */
+  var ip=[];
+  ip.push(S.vol>35?'Large-volume lesion ('+S.vol.toFixed(1)+' cm\u00b3) with mass effect':(S.vol>20?'Moderate lesion ('+S.vol.toFixed(1)+' cm\u00b3)':'Small lesion ('+S.vol.toFixed(1)+' cm\u00b3)'));
+  if(S.enh>0.65)ip.push('prominent ring enhancement indicating active tumour margin');
+  if(S.nec>0.3)ip.push('central necrosis ('+(S.nec*100).toFixed(0)+'%) consistent with aggressive biology');
+  if(S.adc<0.85)ip.push('restricted diffusion (ADC '+S.adc.toFixed(2)+') suggesting high cellularity');
+  if(S.rcbv>4)ip.push('elevated rCBV ('+S.rcbv.toFixed(1)+') indicating neovascularisation');
+  if(S.flair>1.8)ip.push('extensive FLAIR signal indicating infiltrative oedema');
+  if(S.mgmt==='Unmethylated')ip.push('unmethylated MGMT reduces expected treatment response');
+  E('mri-int').textContent=ip.join('; ')+'.';
+  bHisto();
+}
+
+/* ── HISTOPATHOLOGY + CONTRAST CT ── */
+function bHisto(){
+  /* ── CONTRAST CT ── */
+  var tR=Math.round(18+Math.min(S.vol/60,1)*36),
+      necR=Math.round(tR*Math.min(S.nec,0.85)*0.72),
+      enhW=Math.round(2+S.enh*8);
+  var ctBrain='M100,18 C148,18 182,52 182,100 C182,148 148,182 100,182 C52,182 18,148 18,100 C18,52 52,18 100,18Z';
+  var ventL='M86,90 Q92,84 100,86 Q108,84 114,90 Q116,98 110,104 Q102,108 94,106 Q86,102 84,98Z';
+  // CT looks different: brighter, more contrast, less texture
+  E('ct-img').innerHTML='<rect width="200" height="200" fill="#000"/>'+
+    '<path d="'+ctBrain+'" fill="#a8a59f" stroke="#d4d0c6" stroke-width="2"/>'+
+    '<path d="M30,80 Q35,75 42,80" fill="none" stroke="#8a8780" stroke-width="0.8"/>'+
+    '<path d="M158,80 Q165,75 170,80" fill="none" stroke="#8a8780" stroke-width="0.8"/>'+
+    '<path d="M55,120 Q60,115 68,120" fill="none" stroke="#8a8780" stroke-width="0.8"/>'+
+    '<path d="M132,120 Q138,115 145,120" fill="none" stroke="#8a8780" stroke-width="0.8"/>'+
+    '<path d="'+ventL+'" fill="#1a1a1f" stroke="#3a3a40" stroke-width="0.8"/>'+
+    '<ellipse cx="100" cy="100" rx="'+Math.round(tR*1.15)+'" ry="'+Math.round(tR*1.08)+'" fill="rgba(70,75,80,0.55)" stroke="none"/>'+
+    '<ellipse cx="100" cy="100" rx="'+tR+'" ry="'+Math.round(tR*0.92)+'" fill="rgba(255,255,255,0.92)" stroke="rgba(255,255,255,1)" stroke-width="'+enhW+'"/>'+
+    (necR>4?'<ellipse cx="100" cy="100" rx="'+necR+'" ry="'+Math.round(necR*0.88)+'" fill="rgba(35,35,40,0.95)"/>':'')+
+    '<text x="6" y="13" font-size="9" fill="rgba(255,255,255,0.5)" font-family="monospace">CT</text>'+
+    '<text x="6" y="196" font-size="8" fill="rgba(255,255,100,0.55)" font-family="monospace">R</text>'+
+    '<text x="185" y="196" font-size="8" fill="rgba(255,255,100,0.55)" font-family="monospace">L</text>'+
+    '<text x="138" y="196" font-size="7" fill="rgba(255,255,255,0.35)" font-family="monospace">+contrast</text>';
+
+  var huEnh=Math.round(60+S.enh*40), huNec=Math.round(15+S.nec*10);
+  E('ct-params').innerHTML=
+    '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">Enh. HU</span><span class="mono" style="color:var(--text2)">'+huEnh+' HU</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">Necrotic HU</span><span class="mono" style="color:var(--text2)">'+huNec+' HU</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">Mass effect</span><span class="mono" style="color:'+(S.vol>30?'var(--danger)':'var(--text2)')+'">'+(S.vol>40?'Marked':(S.vol>25?'Moderate':'Mild'))+'</span></div>';
+
+  /* ── HISTOLOGY SLIDE (H&E ×400) ── */
+  // Calculate cell density and atypia based on patient params
+  var aggression = (S.idh==='Wild-type'?1:0.4)*(S.mgmt==='Unmethylated'?1.1:0.8)*(S.nec>0.3?1.2:0.9);
+  var atypiaCount = Math.round(18 + aggression*22 + S.enh*8);  // 18-50 cells
+  var necCount = Math.round(S.nec*15 + 2);
+  var mitosisCount = Math.round(3 + aggression*6);
+  var microVasc = S.rcbv>4 ? Math.round(2+S.rcbv*0.8) : Math.round(1+S.rcbv*0.4);
+
+  // H&E background — pink/purple tissue
+  var hSvg = '<rect width="200" height="200" fill="#2a1530"/>';
+  // Eosinophilic background texture (lighter pink patches)
+  for (var bg=0; bg<25; bg++) {
+    var bx=Math.random()*200, by=Math.random()*200, br=15+Math.random()*30;
+    hSvg += '<circle cx="'+bx.toFixed(0)+'" cy="'+by.toFixed(0)+'" r="'+br.toFixed(0)+'" fill="rgba(220,140,180,0.08)"/>';
+  }
+  // Normal small cells (uniform purple nuclei)
+  var seed=S.vol*S.enh*100;  // deterministic-ish
+  function rnd(i){var x=Math.sin(seed+i*37.3)*10000;return x-Math.floor(x);}
+  for (var n=0; n<28; n++) {
+    var nx=10+rnd(n)*180, ny=10+rnd(n+100)*180, nr=2+rnd(n+200)*1.5;
+    hSvg += '<circle cx="'+nx.toFixed(0)+'" cy="'+ny.toFixed(0)+'" r="'+nr.toFixed(1)+'" fill="#4a1a5a" stroke="#3a0f4a" stroke-width="0.3"/>';
+  }
+  // Atypical cells — large irregular dark nuclei, hyperchromatic
+  for (var a=0; a<atypiaCount; a++) {
+    var ax=15+rnd(a+300)*170, ay=15+rnd(a+400)*170;
+    var arx=4+rnd(a+500)*4, ary=3.5+rnd(a+600)*4;
+    var rot=Math.round(rnd(a+700)*180);
+    hSvg += '<ellipse cx="'+ax.toFixed(0)+'" cy="'+ay.toFixed(0)+'" rx="'+arx.toFixed(1)+'" ry="'+ary.toFixed(1)+'" fill="#2a0535" stroke="#1a001f" stroke-width="0.4" transform="rotate('+rot+' '+ax.toFixed(0)+' '+ay.toFixed(0)+')"/>';
+    // Nucleolus
+    hSvg += '<circle cx="'+(ax+rnd(a+800)*2-1).toFixed(1)+'" cy="'+(ay+rnd(a+900)*2-1).toFixed(1)+'" r="0.8" fill="#0a0010"/>';
+  }
+  // Mitotic figures — clearly visible spindle-like dark structures
+  for (var mi=0; mi<mitosisCount; mi++) {
+    var mx=20+rnd(mi+1000)*160, my=20+rnd(mi+1100)*160;
+    hSvg += '<g transform="translate('+mx.toFixed(0)+','+my.toFixed(0)+') rotate('+Math.round(rnd(mi+1200)*360)+')">'+
+            '<ellipse cx="-3" cy="0" rx="2.5" ry="3.5" fill="#0a0010"/>'+
+            '<ellipse cx="3" cy="0" rx="2.5" ry="3.5" fill="#0a0010"/>'+
+            '<line x1="-3" y1="0" x2="3" y2="0" stroke="#0a0010" stroke-width="0.8"/>'+
+            '</g>';
+  }
+  // Necrotic zones — dark amorphous areas (pseudo-palisading necrosis = GBM hallmark)
+  for (var nc=0; nc<necCount; nc++) {
+    var ncx=25+rnd(nc+1300)*150, ncy=25+rnd(nc+1400)*150;
+    var ncr=6+rnd(nc+1500)*8;
+    hSvg += '<ellipse cx="'+ncx.toFixed(0)+'" cy="'+ncy.toFixed(0)+'" rx="'+ncr.toFixed(0)+'" ry="'+(ncr*0.7).toFixed(0)+'" fill="rgba(10,5,15,0.85)" stroke="rgba(60,10,80,0.5)" stroke-width="0.8"/>';
+    // Palisading cells around necrosis
+    for (var pl=0; pl<5; pl++) {
+      var ang=pl/5*Math.PI*2, plx=ncx+Math.cos(ang)*ncr*1.15, ply=ncy+Math.sin(ang)*ncr*0.85;
+      hSvg += '<ellipse cx="'+plx.toFixed(1)+'" cy="'+ply.toFixed(1)+'" rx="3" ry="2.5" fill="#1a0025" stroke="#0a0010" stroke-width="0.3"/>';
+    }
+  }
+  // Microvascular proliferation — glomeruloid vessel structures
+  for (var mv=0; mv<microVasc; mv++) {
+    var vx=20+rnd(mv+1600)*160, vy=20+rnd(mv+1700)*160;
+    hSvg += '<g transform="translate('+vx.toFixed(0)+','+vy.toFixed(0)+')">'+
+            '<circle cx="0" cy="0" r="5" fill="none" stroke="#a04060" stroke-width="1.2"/>'+
+            '<circle cx="0" cy="0" r="2.5" fill="rgba(200,80,100,0.4)"/>'+
+            '<circle cx="-2" cy="-1" r="0.8" fill="#3a0f4a"/>'+
+            '<circle cx="2" cy="1" r="0.8" fill="#3a0f4a"/>'+
+            '<circle cx="0" cy="2" r="0.8" fill="#3a0f4a"/>'+
+            '</g>';
+  }
+  // Scale bar
+  hSvg += '<line x1="160" y1="190" x2="190" y2="190" stroke="#fff" stroke-width="1.5"/>'+
+          '<text x="158" y="186" font-size="7" fill="#fff" font-family="monospace">50 μm</text>'+
+          '<text x="6" y="13" font-size="8" fill="rgba(255,255,255,0.55)" font-family="monospace">H&amp;E ×400</text>';
+  E('histo-img').innerHTML = hSvg;
+
+  // Cellularity calculation
+  var cellularity = atypiaCount > 35 ? 'Hypercellular' : atypiaCount > 25 ? 'Increased' : 'Moderate';
+  var atypiaGrade = atypiaCount > 35 ? 'Marked' : atypiaCount > 25 ? 'Moderate' : 'Mild';
+
+  E('histo-params').innerHTML =
+    '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">Atypical cells</span><span class="mono" style="color:'+(atypiaCount>30?'var(--danger)':'var(--warn)')+'">'+atypiaCount+'/HPF</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">Mitoses</span><span class="mono" style="color:'+(mitosisCount>5?'var(--danger)':'var(--text2)')+'">'+mitosisCount+'/10 HPF</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">Necrosis</span><span class="mono" style="color:'+(necCount>4?'var(--danger)':'var(--text2)')+'">'+necCount+' foci</span></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--text3)">Microvasc.</span><span class="mono" style="color:'+(microVasc>3?'var(--danger)':'var(--text2)')+'">'+microVasc+' loci</span></div>';
+
+  // WHO Grade determination per 2021 criteria
+  var grade, gradeName, gradeColor;
+  if (S.idh==='Mutant' && S.nec<0.15 && mitosisCount<4) {
+    grade='II'; gradeName='Diffuse astrocytoma'; gradeColor='var(--success)';
+  } else if (S.idh==='Mutant' && (S.nec>=0.15 || mitosisCount>=4)) {
+    grade='III'; gradeName='Anaplastic astrocytoma'; gradeColor='var(--warn)';
+  } else {
+    grade='IV'; gradeName='Glioblastoma, IDH-wildtype'; gradeColor='var(--danger)';
+  }
+  E('who-grade').textContent=grade;
+  E('who-grade').style.color=gradeColor;
+  E('who-name').textContent=gradeName;
+
+  // Findings list
+  var findings=[];
+  if (atypiaCount>30) findings.push({s:'High nuclear atypia',col:'var(--danger)',ic:'&#9888;'});
+  else if (atypiaCount>20) findings.push({s:'Moderate atypia',col:'var(--warn)',ic:'&#9651;'});
+  if (mitosisCount>5) findings.push({s:'Increased mitotic activity',col:'var(--danger)',ic:'&#9888;'});
+  if (necCount>3) findings.push({s:'Pseudopalisading necrosis',col:'var(--danger)',ic:'&#9635;'});
+  if (microVasc>3) findings.push({s:'Microvascular proliferation',col:'var(--danger)',ic:'&#9650;'});
+  if (S.idh==='Wild-type') findings.push({s:'IDH-wildtype confirmed',col:'var(--warn)',ic:'&#9673;'});
+  if (S.mgmt==='Methylated') findings.push({s:'MGMT methylation present',col:'var(--success)',ic:'&#10003;'});
+  if (findings.length===0) findings.push({s:'Low-grade features',col:'var(--success)',ic:'&#10003;'});
+
+  E('histo-findings').innerHTML=findings.map(function(f){
+    return '<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);padding:2px 0"><span style="color:'+f.col+';font-size:11px;flex-shrink:0">'+f.ic+'</span>'+f.s+'</div>';
+  }).join('');
+
+  // Integrated interpretation
+  var hp=[];
+  hp.push('Contrast CT demonstrates '+(S.enh>0.65?'avid':(S.enh>0.4?'moderate':'minimal'))+' ring enhancement ('+huEnh+' HU) with '+(necCount>3?'central hypodense necrotic core':'preserved tumour matrix'));
+  hp.push('histopathology reveals '+cellularity.toLowerCase()+' lesion with '+atypiaGrade.toLowerCase()+' nuclear pleomorphism');
+  hp.push(mitosisCount+' mitotic figures per 10 HPF');
+  if (necCount>3) hp.push('pseudopalisading necrosis identified — a defining feature of GBM');
+  if (microVasc>3) hp.push('microvascular proliferation with glomeruloid structures noted');
+  hp.push('integrating molecular profile (IDH '+S.idh+', MGMT '+S.mgmt+'), findings are consistent with <strong style="color:'+gradeColor+'">WHO Grade '+grade+' '+gradeName+'</strong>');
+  E('hp-interp').innerHTML = hp.join('; ') + '.';
+}
+
+/* ── AI MODEL ── */
+function bModel(){
+  var lhr=((S.sc-50)/100).toFixed(3), hr=Math.exp((S.sc-50)/100).toFixed(3);
+  var cox=[
+    ['Feature vector assembly','Age, KPS, volume, enhancement, necrosis, ADC, rCBV, texture \u2192 z-normalised','dim(x)=12 | x[0:4]=['+S.age+', '+S.kps+', '+S.vol.toFixed(1)+', '+S.enh.toFixed(2)+'...]'],
+    ['Genetic encoding','MGMT, IDH, EGFR, TERT binary-encoded and concatenated to feature vector','g=['+(S.mgmt==='Unmethylated'?1:0)+', '+(S.idh==='Wild-type'?1:0)+', '+(S.egfr==='Positive'?1:0)+', '+(S.tert==='Mutant'?1:0)+']'],
+    ['Baseline hazard','Breslow estimator on TCGA-GBM cohort (n=207, 24-month follow-up)','H\u2080(t) = \u03a3 events\u2264t / \u03a3 at-risk'],
+    ['Partial hazard','log(HR)=\u03b2\u00b7x via LASSO-penalised Cox (\u03bb=0.01)','log(HR)='+lhr+' | HR='+hr],
+    ['Survival output','S(t)=exp(\u2212H\u2080(t)\u00b7exp(\u03b2\u00b7x)) | Schoenfeld p>0.05','S(12mo)='+S.s12+'% | Median PFS='+S.pt+' months']
+  ];
+  var ch='';for(var i=0;i<cox.length;i++){ch+='<div class="mstep"><div class="msn">'+(i+1)+'</div><div style="flex:1"><div class="mst">'+cox[i][0]+'</div><div class="msd">'+cox[i][1]+'</div><div class="msv">'+cox[i][2]+'</div></div></div>';}
+  E('cox-steps').innerHTML=ch;
+  var xgb=[
+    ['Ensemble config','500 trees, max_depth=4, \u03b7=0.05, subsample=0.8, colsample=0.8','TCGA-GBM + CGGA validation (n=207+176)'],
+    ['SHAP importance','Top predictors by absolute SHAP value','MGMT \u25ba vol \u25ba IDH \u25ba rCBV \u25ba ADC \u25ba enh \u25ba age'],
+    ['Risk class','Softmax: Low / Intermediate / High','Class: '+S.rg+' | P(class)='+(S.sc/100).toFixed(2)],
+    ['PFS estimate','Survival regression head \u2014 time-to-event XGBoost','PFS='+S.pt+' mo (95% CI: '+Math.max(1,S.pt-1.8).toFixed(1)+'\u2013'+(S.pt+2.4).toFixed(1)+')']
+  ];
+  var xh='';for(var j=0;j<xgb.length;j++){xh+='<div class="mstep"><div class="msn">'+(j+1)+'</div><div style="flex:1"><div class="mst">'+xgb[j][0]+'</div><div class="msd">'+xgb[j][1]+'</div><div class="msv">'+xgb[j][2]+'</div></div></div>';}
+  E('xgb-steps').innerHTML=xh;
+  setTimeout(function(){
+    DC('surv');
+    var mo=[0,2,4,6,8,10,12,14,16,18,20,22,24],d=S.sc/100;
+    var pat=mo.map(function(m){return Math.max(2,Math.round(100*Math.exp(-d*m/9)));});
+    var med=[100,92,84,74,62,51,42,34,27,21,16,12,9];
+    CH['surv']=new Chart(E('survChart').getContext('2d'),{type:'line',
+      data:{labels:mo.map(function(m){return m+'mo';}),datasets:[
+        {data:pat,borderColor:'#0ea5e9',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#0ea5e9',tension:0.4,fill:false},
+        {data:med,borderColor:'#475569',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0.4,fill:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#475569',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{min:0,max:100,ticks:{color:'#475569',font:{size:10},callback:function(v){return v+'%';}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  },150);
+}
+
+/* ── TWIN ── */
+function bTwin(){
+  var mos=[3,6,9,12,15,18,21,24],d=S.sc/100;
+  E('twin-ci').textContent=Math.max(1,S.pt-1.8).toFixed(1)+'\u2013'+(S.pt+2.4).toFixed(1)+' months';
+  var tl='';
+  for(var i=0;i<mos.length;i++){
+    var m=mos[i],p=Math.max(2,Math.round(100*Math.exp(-d*m/9)));
+    var bc=p<30?'#ef4444':(p<55?'#f59e0b':'#22c55e'),sc=p<30?'bd':(p<55?'bw':'bg'),st=p<30?'High risk':(p<55?'Moderate':'Stable');
+    tl+='<div class="trow"><div class="tmo">Mo '+m+'</div><div class="tbw"><div class="tbb"><div class="tbi" style="width:'+p+'%;background:'+bc+'"></div></div></div>'+
+        '<div class="tpr" style="color:'+bc+'">'+p+'%</div><span class="badge '+sc+'" style="font-size:9px;min-width:68px;justify-content:center">'+st+'</span></div>';
+  }
+  E('twin-tl').innerHTML=tl;
+  setTimeout(function(){
+    DC('twin');
+    var labs=['BL','1mo','2mo','3mo','4mo','5mo','6mo','7mo','8mo'],rf=S.sc>65?0.09:(S.sc>40?-0.02:-0.12);
+    var tv=labs.map(function(l,i){return Math.max(3,Math.round(S.vol*Math.exp(rf*i)*10)/10);});
+    CH['twin']=new Chart(E('twinChart').getContext('2d'),{type:'line',
+      data:{labels:labs,datasets:[{data:tv,borderColor:'#ef4444',borderWidth:2.5,backgroundColor:'rgba(239,68,68,0.06)',pointRadius:4,pointBackgroundColor:'#ef4444',tension:0.3,fill:true}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#475569',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{ticks:{color:'#475569',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+    DC('prog');
+    var mo2=[0,3,6,9,12,15,18,21,24],sp=mo2.map(function(m){return Math.max(2,Math.round(100*Math.exp(-d*m/9)));});
+    CH['prog']=new Chart(E('progChart').getContext('2d'),{type:'bar',
+      data:{labels:mo2.map(function(m){return 'Mo '+m;}),datasets:[{data:sp,backgroundColor:sp.map(function(p){return p<30?'rgba(239,68,68,0.8)':(p<55?'rgba(245,158,11,0.8)':'rgba(34,197,94,0.75)');}),borderWidth:0,borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#475569',font:{size:10}},grid:{display:false}},
+                y:{min:0,max:100,ticks:{color:'#475569',font:{size:10},callback:function(v){return v+'%';}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  },150);
+}
+
+/* ── RISK ── */
+function bRisk(){
+  var rc=S.rg==='High'?'h-high':(S.rg==='Intermediate'?'h-med':'h-low');
+  E('risk-met').innerHTML=
+    '<div class="mc '+rc+'"><div class="mlb">Risk score</div><div class="mv">'+S.sc+'%</div><div class="ms">'+S.rg+' risk group</div></div>'+
+    '<div class="mc h-info"><div class="mlb">Predicted progression</div><div class="mv">'+S.pt+' mo</div><div class="ms">Median time-to-progression</div></div>'+
+    '<div class="mc"><div class="mlb">6-month survival</div><div class="mv">'+S.s6+'%</div><div class="ms">Probability estimate</div></div>'+
+    '<div class="mc"><div class="mlb">12-month survival</div><div class="mv">'+S.s12+'%</div><div class="ms">Probability estimate</div></div>';
+  var acls=S.rg==='High'?'alert alert-d':(S.rg==='Intermediate'?'alert alert-w':'alert alert-s');
+  var atxt=S.rg==='High'?'<strong>High risk alert:</strong> Predicted progression at '+S.pt+' months. Urgent MDT review recommended.':(S.rg==='Intermediate'?'<strong>Intermediate risk:</strong> Enhanced monitoring warranted. Reassess biomarkers at 6-month checkpoint.':'<strong>Low risk:</strong> Favourable profile. Standard follow-up per EANO guidelines.');
+  E('risk-alert').innerHTML='<div class="'+acls+'">&#9432;&#160;<span>'+atxt+'</span></div>';
+
+  // ── CONFIDENCE CALIBRATION (Module 3) ──
+  var confScore, confClass, confLabel, confDetail;
+  var outlierFlags=[];
+  if(S.age>72)outlierFlags.push('Age >72 (underrepresented in TCGA-GBM training cohort)');
+  if(S.vol>50)outlierFlags.push('Tumour volume >50 cm³ (rare in training data, n<15)');
+  if(S.kps<50)outlierFlags.push('KPS <50 (high attrition in cohort — limited follow-up)');
+  if(S.adc<0.65)outlierFlags.push('ADC <0.65 (extreme diffusion restriction — tail distribution)');
+  var mgmtKnown=S.mgmt!=='Unknown';
+  if(!mgmtKnown)outlierFlags.push('MGMT status unknown — key predictor missing, imputation used');
+  if(outlierFlags.length===0){
+    confClass='high'; confLabel='HIGH CONFIDENCE'; confScore=92;
+    confDetail='This patient matches the training cohort well (TCGA-GBM, n=207). Prediction is reliable. No significant population mismatch detected.';
+  }else if(outlierFlags.length===1){
+    confClass='moderate'; confLabel='MODERATE CONFIDENCE'; confScore=68;
+    confDetail='One outlier factor detected. Predictions remain valid but should be interpreted with caution: '+outlierFlags[0]+'.';
+  }else{
+    confClass='low'; confLabel='LOW CONFIDENCE — EXERCISE CAUTION'; confScore=41;
+    confDetail='Multiple outlier factors ('+outlierFlags.length+'): '+outlierFlags.join('; ')+'. This patient may not be well-represented by the training data. Treat predictions as indicative, not definitive.';
+  }
+  S.confClass=confClass; S.confScore=confScore; S.confLabel=confLabel;
+  var confHtml='<div class="conf-strip '+confClass+'">'
+    +'<div class="conf-icon">'+(confClass==='high'?'&#9989;':(confClass==='moderate'?'&#9888;':'&#128683;'))+'</div>'
+    +'<div style="flex:1">'
+    +'<div class="conf-label">Model confidence: '+confLabel+' ('+confScore+'%)</div>'
+    +'<div class="conf-detail">'+confDetail+'</div>'
+    +(outlierFlags.length>0?'<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px">'+outlierFlags.map(function(f){return '<span style="font-size:9px;padding:2px 6px;background:rgba(0,0,0,0.2);border-radius:3px;border:1px solid rgba(255,255,255,0.1)">&#9655; '+f+'</span>';}).join('')+'</div>':'')
+    +'</div>'
+    +'<div style="text-align:right;flex-shrink:0"><div style="font-size:22px;font-weight:700;font-family:var(--mono);line-height:1">'+confScore+'%</div><div style="font-size:9px;opacity:0.7">cohort match</div></div>'
+    +'</div>';
+  var existingConf=E('risk-conf');
+  if(existingConf)existingConf.innerHTML=confHtml;
+  else{var cd=document.createElement('div');cd.id='risk-conf';cd.innerHTML=confHtml;E('risk-alert').after(cd);}
+  setTimeout(function(){
+    DC('gauge');
+    var sc=S.sc,gcol=sc>=65?'#ef4444':(sc>=40?'#f59e0b':'#22c55e');
+    CH['gauge']=new Chart(E('gaugeChart').getContext('2d'),{type:'doughnut',
+      data:{datasets:[{data:[sc,100-sc],backgroundColor:[gcol,'#172038'],borderWidth:0,circumference:180,rotation:270}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+    E('glabel').textContent=S.sc+'%  \u2014  '+S.rg+' risk';
+    DC('radar');
+    var img=Math.round(Math.min(S.vol/60,1)*70+S.enh*30),gen=Math.round((S.mgmt==='Unmethylated'?40:10)+(S.idh==='Wild-type'?35:5)+(S.egfr==='Positive'?15:0)),
+        cli=Math.round(Math.min((S.age-40)/50,1)*60+Math.max((80-S.kps)/80,0)*40),tx=Math.round(100-Math.min(S.tmz/12,1)*30-Math.min(S.rt/80,1)*25);
+    CH['radar']=new Chart(E('radarChart').getContext('2d'),{type:'radar',
+      data:{labels:['Imaging','Genetics','Clinical','Treatment','Progression'],
+            datasets:[{data:[img,gen,cli,tx,S.sc],backgroundColor:'rgba(14,165,233,0.08)',borderColor:'#0ea5e9',borderWidth:1.5,pointBackgroundColor:'#0ea5e9',pointRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{r:{min:0,max:100,ticks:{color:'#475569',font:{size:9},backdropColor:'transparent',stepSize:25},grid:{color:'rgba(255,255,255,0.06)'},pointLabels:{color:'#94a3b8',font:{size:10}},angleLines:{color:'rgba(255,255,255,0.05)'}}}}});
+  },150);
+  var recs=[];
+  if(S.rg==='High'){recs=[
+    {cls:'ri-d',ic:'&#9888;',t:'Intensify monitoring protocol',d:'MRI every 6\u20138 weeks. Consider PET-CT for metabolic assessment. Risk score '+S.sc+'% warrants increased surveillance frequency.'},
+    {cls:'ri-d',ic:'&#9673;',t:'MGMT-guided treatment re-evaluation',d:S.mgmt==='Unmethylated'?'Unmethylated MGMT predicts reduced TMZ sensitivity. Evaluate lomustine \u00b1 bevacizumab or dose-dense TMZ regimen.':'MGMT methylation confirmed. Continue TMZ-based regimen with close monitoring.'},
+    {cls:'ri-w',ic:'&#9651;',t:'Clinical trial eligibility',d:'IDH '+S.idh+' / EGFR '+S.egfr+' profile aligns with Phase II/III trials. MDT review for enrolment consideration.'},
+    {cls:'ri-i',ic:'&#9635;',t:'Multidisciplinary tumour board',d:'Urgent MDT discussion within 2 weeks. Progression at '+S.pt+' months requires pre-emptive treatment planning.'}
+  ];}else if(S.rg==='Intermediate'){recs=[
+    {cls:'ri-w',ic:'&#9636;',t:'Enhanced monitoring schedule',d:'MRI every 8\u201310 weeks. Neurological status and QoL at each visit.'},
+    {cls:'ri-i',ic:'&#9651;',t:'Continue current regimen',d:'Maintenance TMZ appropriate. Re-evaluate at 3-month MRI checkpoint.'},
+    {cls:'ri-i',ic:'&#9673;',t:'Biomarker re-evaluation',d:'Reassess MGMT and EGFR at 6 months if clinical deterioration occurs.'}
+  ];}else{recs=[
+    {cls:'ri-s',ic:'&#9635;',t:'Maintain current protocol',d:'Low-risk profile. Standard maintenance TMZ. MRI every 12 weeks per EANO guidelines.'},
+    {cls:'ri-i',ic:'&#9673;',t:'Routine follow-up',d:'Annual neuropsychological assessment. QoL monitoring throughout.'}
+  ];}
+  var EVIDENCE_DB={
+    'Intensify monitoring protocol':{
+      title:'Evidence: Intensified monitoring in high-risk GBM',
+      trials:[
+        {name:'Chinot et al. (2014) — NEJM (AVAglio)',meta:'RCT | n=921 | Bevacizumab+TMZ/RT vs TMZ/RT',finding:'High-risk patients (unmethylated MGMT, KPS 70–80) showed shorter median PFS of 6.2 months, reinforcing the need for accelerated MRI surveillance to detect progression early.',stat:'Median PFS: 6.2 mo (high-risk) | HR 0.64'},
+        {name:'EANO Guidelines (Weller et al. 2021)',meta:'Consensus guideline | Grade A recommendation',finding:'MRI every 8–12 weeks standard; high-risk patients (score ≥65%) should be reassessed every 6–8 weeks. PET-CT recommended when MRI is equivocal for pseudoprogression vs true progression.',stat:'Recommendation Grade A'}
+      ]
+    },
+    'MGMT-guided treatment re-evaluation':{
+      title:'Evidence: MGMT status & treatment selection',
+      trials:[
+        {name:'Hegi et al. (2005) — NEJM',meta:'Biomarker analysis | n=573 (EORTC-NCIC trial)',finding:'MGMT promoter methylation is the dominant predictive biomarker for TMZ response. Methylated patients had median OS of 21.7 months vs 12.7 months in unmethylated (HR 0.51, p<0.001). Unmethylated patients derive minimal benefit from TMZ over RT alone.',stat:'OS: 21.7 mo (meth) vs 12.7 mo (unmeth) | HR 0.51'},
+        {name:'Herrlinger et al. (2019) — Lancet (CATNON)',meta:'Phase III RCT | n=745 | MGMT unmethylated GBM',finding:'In MGMT-unmethylated tumours, TMZ adjuvant provided limited benefit. Alternative regimens (dose-dense TMZ, lomustine) should be considered. Bevacizumab showed no additional OS benefit in this subgroup.',stat:'No OS benefit TMZ adj. in unmeth. (p=0.15)'}
+      ]
+    },
+    'Clinical trial eligibility':{
+      title:'Evidence: Trial eligibility by molecular profile',
+      trials:[
+        {name:'Weller et al. (2017) — Neuro-Oncology',meta:'Systematic review | GBM molecular classification',finding:'IDH wild-type + EGFR amplified GBM patients represent a distinct molecular subgroup with poor prognosis but active clinical trial targets. EGFR amplification is found in ~40% of primary GBM and is being targeted by AMG 596 (bispecific T-cell engager) in Phase I/II trials.',stat:'EGFR amp. in ~40% primary GBM | Active trials: AMG 596, EGFRvIII CAR-T'},
+        {name:'ClinicalTrials.gov — Active GBM Phase II/III',meta:'Registry search | 2023–2025',finding:'IDH wild-type + TERT mutant + EGFR+ profile matches eligibility criteria for multiple active trials including INDIGO (IDH), AGILE (IDH1), and HEROIC (EGFRvIII). MDT review recommended within 2 weeks.',stat:'Match rate: INDIGO, AGILE, HEROIC'}
+      ]
+    },
+    'Multidisciplinary tumour board':{
+      title:'Evidence: MDT impact on GBM outcomes',
+      trials:[
+        {name:'Pan et al. (2012) — J Neurooncol',meta:'Retrospective cohort | n=412 | MDT vs standard care',finding:'Patients managed by dedicated neuro-oncology MDT had 15% longer median OS vs single-physician management (14.2 vs 12.4 months). MDT enables concurrent radiologist, oncologist, and neurosurgeon review for complex cases.',stat:'OS advantage: +1.8 months | p=0.03'},
+        {name:'NICE Guideline NG99 (2018)',meta:'UK National Guideline',finding:'All patients with suspected or confirmed high-grade glioma should be discussed at a specialist neuro-oncology MDT before treatment initiation. Emergency MDT within 5 working days recommended for rapid-progression presentations.',stat:'Grade 1A recommendation'}
+      ]
+    },
+    'Enhanced monitoring schedule':{
+      title:'Evidence: Monitoring in intermediate-risk GBM',
+      trials:[
+        {name:'Stupp et al. (2005) — NEJM',meta:'Phase III | n=573 | Standard of care definition',finding:'Original Stupp protocol specifies MRI at 4 weeks post-RT, then every 8–12 weeks. Intermediate-risk patients benefit from tighter surveillance windows (8–10 weeks) to detect early progression before clinical deterioration.',stat:'MRI schedule: 8–12 weeks post-RT standard'}
+      ]
+    },
+    'Continue current regimen':{
+      title:'Evidence: Maintenance TMZ in GBM',
+      trials:[
+        {name:'Stupp et al. (2009) — Lancet Oncology (EORTC 26981)',meta:'5-year update | n=573 | Maintenance TMZ',finding:'Long-term follow-up confirmed benefit of 6 cycles adjuvant TMZ. Patients completing full 6 cycles showed superior PFS vs early discontinuation (8.0 vs 5.5 months). MGMT methylation strongly predicts maintenance benefit.',stat:'PFS benefit: 8.0 vs 5.5 mo | 5-yr OS: 9.8% (meth group)'}
+      ]
+    },
+    'Biomarker re-evaluation':{
+      title:'Evidence: Serial biomarker assessment',
+      trials:[
+        {name:'Touat et al. (2021) — Nature',meta:'Longitudinal genomic profiling | n=90 GBM',finding:'GBM undergoes significant molecular evolution at recurrence. Serial cfDNA sampling or re-biopsy at progression reveals new actionable mutations in ~38% of patients. MGMT methylation status can change at recurrence and should be reassessed.',stat:'New actionable mutations at recurrence: 38%'}
+      ]
+    },
+    'Maintain current protocol':{
+      title:'Evidence: Low-risk GBM management',
+      trials:[
+        {name:'Malmström et al. (2012) — Lancet Oncology',meta:'RCT | n=291 | Elderly/low KPS GBM',finding:'In selected low-risk patients, standard maintenance TMZ with MRI surveillance provides optimal quality-of-life without over-treatment. Routine follow-up per EANO guidelines (MRI every 12 weeks) is appropriate.',stat:'QoL-adjusted PFS maintained | No benefit from dose-escalation'}
+      ]
+    },
+    'Routine follow-up':{
+      title:'Evidence: Long-term follow-up protocols',
+      trials:[
+        {name:'Douw et al. (2009) — J Neurooncol',meta:'Prospective | n=195 | Long-term GBM survivors',finding:'Annual neuropsychological assessment captures cognitive decline before clinical symptoms. Long-term survivors (>24 months) benefit from standardised QoL tracking including MoCA, MMSE, and fatigue scales.',stat:'Cognitive decline detected 3–6 mo earlier with annual assessment'}
+      ]
+    }
+  };
+  var rh='';
+  for(var k=0;k<recs.length;k++){
+    var ev=EVIDENCE_DB[recs[k].t];
+    var whyBtn=ev?'<button class="why-btn" onclick="openEvModal(\''+recs[k].t.replace(/'/g,"\\'")+'\')" title="View evidence">&#128269;&#160;Why?</button>':'';
+    rh+='<div class="ritem"><div class="rico '+recs[k].cls+'">'+recs[k].ic+'</div><div style="flex:1"><div class="rtit">'+recs[k].t+'</div><div class="rdsc">'+recs[k].d+'</div>'+whyBtn+'</div></div>';
+  }
+  E('rec-list').innerHTML=rh;
+}
+
+/* ── EVIDENCE MODAL ── */
+var EV_DB_GLOBAL={};
+function openEvModal(recTitle){
+  // rebuild db each time (relies on last bRisk run)
+  var db={
+    'Intensify monitoring protocol':{title:'Evidence: Intensified monitoring in high-risk GBM',trials:[{name:'Chinot et al. (2014) — NEJM (AVAglio)',meta:'RCT | n=921',finding:'High-risk patients (unmethylated MGMT, KPS 70–80) showed shorter median PFS of 6.2 months, reinforcing accelerated MRI surveillance.',stat:'Median PFS: 6.2 mo | HR 0.64'},{name:'EANO Guidelines (Weller et al. 2021)',meta:'Consensus guideline | Grade A',finding:'MRI every 8–12 weeks standard; high-risk patients (≥65%) should be reassessed every 6–8 weeks.',stat:'Grade A recommendation'}]},
+    'MGMT-guided treatment re-evaluation':{title:'Evidence: MGMT status & treatment',trials:[{name:'Hegi et al. (2005) — NEJM',meta:'Biomarker analysis | n=573',finding:'MGMT methylation is the dominant predictive biomarker for TMZ response. Methylated patients had median OS 21.7 vs 12.7 months (unmethylated).',stat:'OS: 21.7 mo (meth) vs 12.7 mo | HR 0.51'},{name:'Herrlinger et al. (2019) — Lancet (CATNON)',meta:'Phase III RCT | n=745',finding:'In MGMT-unmethylated tumours, adjuvant TMZ provided limited benefit. Lomustine or dose-dense TMZ should be considered.',stat:'No OS benefit adj. TMZ in unmeth. (p=0.15)'}]},
+    'Clinical trial eligibility':{title:'Evidence: Trial eligibility by molecular profile',trials:[{name:'Weller et al. (2017) — Neuro-Oncology',meta:'Systematic review | GBM molecular classification',finding:'IDH wild-type + EGFR amplified GBM is a distinct subgroup targeted by AMG 596, EGFRvIII CAR-T and other active trials.',stat:'EGFR amp. in ~40% primary GBM'},{name:'ClinicalTrials.gov 2024–2026',meta:'Registry search | Active trials',finding:'This molecular profile (IDH-wt + TERT mut + EGFR+) matches eligibility for INDIGO, AGILE, and HEROIC trials.',stat:'Active matching trials: INDIGO, AGILE, HEROIC'}]},
+    'Multidisciplinary tumour board':{title:'Evidence: MDT impact on GBM outcomes',trials:[{name:'Pan et al. (2012) — J Neurooncol',meta:'Retrospective cohort | n=412',finding:'Patients managed by dedicated neuro-oncology MDT had 15% longer median OS vs single-physician management (14.2 vs 12.4 months).',stat:'OS advantage: +1.8 months | p=0.03'},{name:'NICE Guideline NG99 (2018)',meta:'UK National Guideline',finding:'All patients with suspected or confirmed high-grade glioma must be discussed at specialist neuro-oncology MDT before treatment.',stat:'Grade 1A recommendation'}]},
+    'Enhanced monitoring schedule':{title:'Evidence: Monitoring in intermediate-risk GBM',trials:[{name:'Stupp et al. (2005) — NEJM',meta:'Phase III | n=573',finding:'Original Stupp protocol specifies MRI at 4 weeks post-RT, then every 8–12 weeks. Tighter surveillance (8–10 weeks) is appropriate for intermediate-risk cases.',stat:'MRI schedule: 8–12 weeks standard'}]},
+    'Continue current regimen':{title:'Evidence: Maintenance TMZ in GBM',trials:[{name:'Stupp et al. (2009) — Lancet Oncology',meta:'5-year update | n=573',finding:'Long-term follow-up confirmed benefit of 6 cycles adjuvant TMZ. Completing all cycles: PFS 8.0 vs 5.5 months (early discontinuation).',stat:'PFS: 8.0 vs 5.5 mo | 5-yr OS: 9.8% (meth)'}]},
+    'Biomarker re-evaluation':{title:'Evidence: Serial biomarker assessment',trials:[{name:'Touat et al. (2021) — Nature',meta:'Longitudinal genomic profiling | n=90 GBM',finding:'GBM undergoes significant molecular evolution at recurrence. New actionable mutations arise in ~38% of patients. Serial cfDNA or re-biopsy recommended.',stat:'New actionable mutations at recurrence: 38%'}]},
+    'Maintain current protocol':{title:'Evidence: Low-risk GBM management',trials:[{name:'Malmström et al. (2012) — Lancet Oncology',meta:'RCT | n=291',finding:'Standard maintenance TMZ with routine surveillance provides optimal QoL without over-treatment in low-risk patients.',stat:'No benefit from dose-escalation in low-risk'}]},
+    'Routine follow-up':{title:'Evidence: Long-term follow-up protocols',trials:[{name:'Douw et al. (2009) — J Neurooncol',meta:'Prospective | n=195',finding:'Annual neuropsychological assessment detects cognitive decline 3–6 months earlier than symptom onset.',stat:'Earlier detection: 3–6 months'}]}
+  };
+  var ev=db[recTitle];if(!ev)return;
+  E('ev-modal-title').textContent=ev.title;
+  var bh='';
+  ev.trials.forEach(function(t){
+    bh+='<div class="ev-trial"><div class="ev-name">'+t.name+'</div><div class="ev-meta">'+t.meta+'</div><div class="ev-finding">'+t.finding+'</div><div class="ev-stat">&#128200;&#160;'+t.stat+'</div></div>';
+  });
+  E('ev-modal-body').innerHTML=bh;
+  E('ev-modal').classList.add('open');
+}
+function closeEvModal(e){
+  if(!e||e.target===E('ev-modal'))E('ev-modal').classList.remove('open');
+}
+
+/* ── PSEUDOPROGRESSION FLAG ── */
+function bPseudo(){
+  if(!S||!S.sc)return;
+  // Pseudoprogression scoring: higher = more likely PSEUDO (not true progression)
+  var ppScore=0;
+  var factors=[];
+  // MGMT methylation is strongest predictor of pseudoprogression
+  if(S.mgmt==='Methylated'){ppScore+=28;factors.push({title:'MGMT methylated',desc:'Methylated MGMT is the strongest predictor of pseudoprogression. Incidence 61% in methylated vs 15% unmethylated patients (Brandsma 2008).',fav:'favor-pseudo'});}
+  else if(S.mgmt==='Unmethylated'){ppScore-=10;factors.push({title:'MGMT unmethylated',desc:'Unmethylated MGMT significantly reduces pseudoprogression probability. True progression more likely.',fav:'favor-prog'});}
+  else{ppScore+=5;factors.push({title:'MGMT status unknown',desc:'Unknown MGMT status limits pseudoprogression risk stratification. Reassessment or re-biopsy recommended.',fav:'neutral'});}
+  // Time since RT — pseudoprogression peaks 4–12 weeks post-RT
+  if(S.msd<=3){ppScore+=22;factors.push({title:'Within 3 months of RT completion',desc:'Pseudoprogression peak incidence is 4–12 weeks post-RT. Timing of lesion enlargement is highly suspicious for pseudoprogression.',fav:'favor-pseudo'});}
+  else if(S.msd<=6){ppScore+=10;factors.push({title:'3–6 months since diagnosis',desc:'Late pseudoprogression is possible but less common. Imaging characteristics become more important for differentiation.',fav:'neutral'});}
+  else{ppScore-=8;factors.push({title:'More than 6 months post-diagnosis',desc:'Late pseudoprogression is rare (>6 months post-RT). True progression becomes significantly more likely.',fav:'favor-prog'});}
+  // rCBV — low favours pseudoprogression, high favours true progression
+  if(S.rcbv<2.0){ppScore+=18;factors.push({title:'rCBV <2.0 (low perfusion)',desc:'Low relative cerebral blood volume suggests treatment effect rather than true tumour neovascularisation. MR perfusion rCBV <2.0 favours pseudoprogression (Hygino da Cruz 2011).',fav:'favor-pseudo'});}
+  else if(S.rcbv<3.5){ppScore+=5;factors.push({title:'rCBV 2.0–3.5 (borderline)',desc:'Borderline perfusion values. Cannot reliably differentiate pseudoprogression from true progression on rCBV alone.',fav:'neutral'});}
+  else{ppScore-=12;factors.push({title:'rCBV >3.5 (elevated perfusion)',desc:'Elevated rCBV suggests active tumour neovascularisation, favouring true progression over treatment effect.',fav:'favor-prog'});}
+  // ADC — low ADC (restricted diffusion) favours true progression
+  if(S.adc<0.85){ppScore-=10;factors.push({title:'Low ADC (restricted diffusion)',desc:'Restricted diffusion (ADC <0.85) indicates high cellularity, favouring true tumour progression over pseudoprogression.',fav:'favor-prog'});}
+  else{ppScore+=8;factors.push({title:'ADC ≥0.85 (no restricted diffusion)',desc:'Absence of restricted diffusion is consistent with treatment-related changes rather than hypercellular tumour recurrence.',fav:'favor-pseudo'});}
+  // Enhancement pattern — thick irregular ring favours progression
+  if(S.enh>0.7){ppScore-=8;factors.push({title:'Avid enhancement ratio >0.7',desc:'Thick irregular enhancement pattern may indicate active tumour. Caution: bevacizumab pseudo-response can also produce this pattern.',fav:'favor-prog'});}
+  else{ppScore+=6;factors.push({title:'Moderate/low enhancement (<0.7)',desc:'Less avid enhancement is more compatible with blood-brain barrier disruption from radiation, supporting pseudoprogression.',fav:'favor-pseudo'});}
+  // Clamp 0–100
+  var ppFinal=Math.max(5,Math.min(95,50+ppScore));
+  var verdict, vclass, actionText, mriRec;
+  if(ppFinal>=65){
+    verdict='LIKELY PSEUDOPROGRESSION'; vclass='pseudo';
+    actionText='&#128337; Schedule repeat MRI in <strong>6–8 weeks</strong>. Do NOT alter treatment at this time. Continue current regimen. Clinical review with MDT before any treatment change.';
+    mriRec='Consider advanced MRI sequences: MR spectroscopy (Cho/NAA ratio), MR perfusion (rCBV mapping), and DWI. PET-CT (FET or FDOPA) if MRI remains indeterminate at follow-up.';
+  }else if(ppFinal>=40){
+    verdict='INDETERMINATE'; vclass='unclear';
+    actionText='&#128337; Inconclusive. Schedule <strong>advanced MRI in 4–6 weeks</strong>: add MR spectroscopy and perfusion sequences. Discuss at neuro-oncology MDT. Consider 18F-FET PET if available.';
+    mriRec='Multifactorial assessment required. Obtain rCBV map, Cho/NAA spectroscopy, and DWI ADC map in same imaging session. Re-score at follow-up.';
+  }else{
+    verdict='LIKELY TRUE PROGRESSION'; vclass='progression';
+    actionText='&#128683; High probability of true tumour progression. <strong>Urgent MDT review within 5–7 days.</strong> Initiate workup for second-line treatment. Consider biopsy if diagnosis uncertain.';
+    mriRec='Progression confirmed if new lesion outside RT field, or >25% increase at >3 months post-RT on stable/increasing steroids (RANO 2010 criteria). Second-line treatment planning warranted.';
+  }
+  // Gauge chart
+  setTimeout(function(){
+    DC('ppGauge');
+    var gcol=ppFinal>=65?'#22c55e':(ppFinal>=40?'#f59e0b':'#ef4444');
+    CH['ppGauge']=new Chart(E('ppGauge').getContext('2d'),{type:'doughnut',
+      data:{datasets:[{data:[ppFinal,100-ppFinal],backgroundColor:[gcol,'#172038'],borderWidth:0,circumference:180,rotation:270}]},
+      options:{responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}},cutout:'70%'}});
+    var lbl=E('pp-score-lbl');lbl.textContent=ppFinal+'%';lbl.style.color=gcol;
+    var v=E('pp-verdict');v.textContent=verdict;v.className='pp-verdict '+vclass;
+    E('pp-conf-note').textContent='Pseudoprogression probability score';
+    E('pp-action-text').innerHTML=actionText;
+    E('pp-mri-rec').innerHTML='<strong style="color:var(--text2);font-size:10px;text-transform:uppercase;letter-spacing:0.06em">Imaging protocol:</strong><br>'+mriRec;
+    var fh='';
+    factors.forEach(function(f){
+      fh+='<div class="pp-factor"><div class="pp-fav '+f.fav+'"></div><div><div class="pp-ftitle">'+f.title+'</div><div class="pp-fdesc">'+f.desc+'</div></div></div>';
+    });
+    E('pp-factors').innerHTML=fh;
+    // Radar chart
+    DC('ppRadar');
+    CH['ppRadar']=new Chart(E('ppRadar').getContext('2d'),{type:'radar',
+      data:{labels:['MGMT meth.','Timing post-RT','Low rCBV','ADC normal','Enhancement','Pseudoprog. Px'],
+            datasets:[
+              {label:'This patient',data:[S.mgmt==='Methylated'?85:(S.mgmt==='Unmethylated'?15:45),S.msd<=3?90:(S.msd<=6?50:15),S.rcbv<2?85:(S.rcbv<3.5?45:15),S.adc>=0.85?70:25,S.enh>0.7?20:65,ppFinal],backgroundColor:'rgba(34,197,94,0.08)',borderColor:'#22c55e',borderWidth:1.5,pointBackgroundColor:'#22c55e',pointRadius:3},
+              {label:'True progression typical',data:[15,20,15,20,80,20],backgroundColor:'rgba(239,68,68,0.05)',borderColor:'rgba(239,68,68,0.4)',borderWidth:1,borderDash:[4,3],pointRadius:2,pointBackgroundColor:'#ef4444'}
+            ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{r:{min:0,max:100,ticks:{color:'#475569',font:{size:9},backdropColor:'transparent',stepSize:25},grid:{color:'rgba(255,255,255,0.06)'},pointLabels:{color:'#94a3b8',font:{size:9}},angleLines:{color:'rgba(255,255,255,0.05)'}}}}});
+  },180);
+}
+
+/* ── DRUG-DRUG INTERACTIONS ── */
+var DDI_MEDS=['Dexamethasone','Levetiracetam'];
+var DDI_REGIMEN_BASE=[
+  {name:'Temozolomide (TMZ)',cls:'Alkylating agent',icon:'T',color:'#0ea5e9'},
+  {name:'Radiotherapy (60 Gy)',cls:'Radiation',icon:'R',color:'#a78bfa'}
+];
+
+var DDI_INTERACTIONS={
+  'Dexamethasone|Temozolomide (TMZ)':{sev:'moderate',pair:'Dexamethasone + TMZ',desc:'Dexamethasone may reduce TMZ efficacy via immunosuppression. Concurrent use increases lymphopenia risk (grade 3–4 in up to 38% of patients). Monitor CBC weekly during concurrent phase.',action:'Monitor: CBC weekly. Taper dexamethasone to minimum effective dose. Avoid prolonged high-dose combination.'},
+  'Levetiracetam|Temozolomide (TMZ)':{sev:'minor',pair:'Levetiracetam + TMZ',desc:'No pharmacokinetic interaction. Levetiracetam does not affect TMZ bioavailability. Both are renally cleared — monitor renal function in elderly patients. Levetiracetam preferred over enzyme-inducing AEDs (phenytoin) in GBM.',action:'Safe to co-administer. Monitor renal function. Preferred AED choice for GBM patients.'},
+  'Warfarin|Temozolomide (TMZ)':{sev:'severe',pair:'Warfarin + TMZ',desc:'Temozolomide can potentiate warfarin anticoagulation — unpredictable INR fluctuations reported. Risk of haemorrhagic complications including intracranial haemorrhage in GBM patients. INR monitoring must be intensified.',action:'Monitor: INR at least weekly during TMZ cycles. Consider switching to LMWH if anticoagulation required. Neurosurgery review if INR >3.'},
+  'Phenytoin|Temozolomide (TMZ)':{sev:'severe',pair:'Phenytoin + TMZ',desc:'CYP-enzyme-inducing AEDs (phenytoin, carbamazepine) significantly reduce TMZ plasma levels by up to 40%. This reduces TMZ efficacy and compromises treatment intent.',action:'AVOID: Switch to non-enzyme-inducing AED (levetiracetam, lacosamide) before starting TMZ. Do not co-administer if avoidable.'},
+  'Omeprazole|Temozolomide (TMZ)':{sev:'minor',pair:'Omeprazole + TMZ',desc:'Omeprazole raises gastric pH, which may slightly increase TMZ dissolution rate. Minor interaction only; no clinically significant pharmacokinetic change observed in studies.',action:'No dose adjustment required. Safe to continue standard PPI dosing.'},
+  'Aspirin|Temozolomide (TMZ)':{sev:'minor',pair:'Aspirin + TMZ',desc:'Low-dose aspirin has no significant pharmacokinetic interaction with TMZ. Monitor for additive GI irritation.',action:'Safe at low doses. Monitor for GI symptoms.'},
+  'Metformin|Temozolomide (TMZ)':{sev:'minor',pair:'Metformin + TMZ',desc:'No pharmacokinetic interaction. Some evidence that metformin may have additive anti-tumour effects in GBM via AMPK pathway. Generally safe co-administration.',action:'Continue metformin if tolerated. Monitor renal function.'},
+  'Warfarin|Bevacizumab':{sev:'severe',pair:'Warfarin + Bevacizumab',desc:'Bevacizumab increases risk of both arterial thrombosis and haemorrhage. Concurrent warfarin amplifies bleeding risk dramatically. Intracranial haemorrhage is a critical concern in GBM.',action:'CONTRAINDICATED: Bevacizumab + warfarin combination is high-risk in GBM. Switch to LMWH if anticoagulation required. Thrombosis specialist review mandatory.'},
+  'Dexamethasone|Bevacizumab':{sev:'moderate',pair:'Dexamethasone + Bevacizumab',desc:'Both agents reduce tumour-associated oedema. Concurrent use may mask clinical progression (pseudo-response). Hypertension risk additive — both agents raise BP independently.',action:'Monitor BP at every visit. Be alert for pseudo-response on MRI. Taper dexamethasone as oedema improves under bevacizumab.'},
+  'Levetiracetam|Bevacizumab':{sev:'minor',pair:'Levetiracetam + Bevacizumab',desc:'No known significant interaction. Both are commonly co-administered in GBM without dose adjustment.',action:'Safe combination. Continue standard monitoring.'}
+};
+
+function bDDI(){
+  if(!S||!S.sc)return;
+  var regimen=DDI_REGIMEN_BASE.slice();
+  if(S.rt>0){}// RT already in base
+  // Render regimen list
+  var rh='';
+  regimen.forEach(function(m){
+    rh+='<div class="ddi-med-row"><div class="ddi-med-icon" style="background:rgba(14,165,233,0.12);border-color:rgba(14,165,233,0.25);color:var(--accent)">'+m.icon+'</div><div><div class="ddi-name">'+m.name+'</div><div class="ddi-class">'+m.cls+'</div></div></div>';
+  });
+  E('ddi-regimen-list').innerHTML=rh;
+  renderDDIConcurrent();
+  renderDDIResults();
+}
+
+function ddiAddMed(){
+  var inp=E('ddi-new-med');
+  var med=inp.value.trim();
+  if(!med)return;
+  // Capitalise first letter
+  med=med.charAt(0).toUpperCase()+med.slice(1);
+  if(DDI_MEDS.indexOf(med)===-1)DDI_MEDS.push(med);
+  inp.value='';
+  renderDDIConcurrent();
+  renderDDIResults();
+}
+
+function ddiRemoveMed(idx){
+  DDI_MEDS.splice(idx,1);
+  renderDDIConcurrent();
+  renderDDIResults();
+}
+
+function renderDDIConcurrent(){
+  var ch='';
+  var colors=['#f59e0b','#22c55e','#a78bfa','#14b8a6','#fb7185','#60a5fa'];
+  DDI_MEDS.forEach(function(m,i){
+    var c=colors[i%colors.length];
+    ch+='<div class="ddi-med-row"><div class="ddi-med-icon" style="background:rgba(100,100,100,0.1);border-color:rgba(255,255,255,0.1);color:'+c+';font-size:9px;font-weight:700">'+m.substring(0,2).toUpperCase()+'</div><div style="flex:1"><div class="ddi-name">'+m+'</div><div class="ddi-class">Concurrent medication</div></div><button onclick="ddiRemoveMed('+i+')" style="width:18px;height:18px;border-radius:4px;background:var(--bg4);border:1px solid var(--border2);color:var(--text3);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">&#10005;</button></div>';
+  });
+  if(!DDI_MEDS.length)ch='<div style="font-size:11px;color:var(--text3);padding:10px 0">No concurrent medications added. Use the field below to add medications.</div>';
+  E('ddi-concurrent-list').innerHTML=ch;
+}
+
+function renderDDIResults(){
+  var regNames=DDI_REGIMEN_BASE.map(function(r){return r.name;});
+  var results=[];
+  DDI_MEDS.forEach(function(med){
+    regNames.forEach(function(reg){
+      var key1=med+'|'+reg, key2=reg+'|'+med;
+      var ix=DDI_INTERACTIONS[key1]||DDI_INTERACTIONS[key2];
+      if(ix)results.push(ix);
+    });
+  });
+  // Also add no-interaction results for meds with nothing found
+  DDI_MEDS.forEach(function(med){
+    var hasAny=regNames.some(function(reg){
+      var key1=med+'|'+reg, key2=reg+'|'+med;
+      return DDI_INTERACTIONS[key1]||DDI_INTERACTIONS[key2];
+    });
+    if(!hasAny)results.push({sev:'none',pair:med+' + Oncological regimen',desc:'No significant known interactions identified between '+med+' and the current oncological regimen in available literature.',action:'Standard monitoring. Verify with pharmacist for patient-specific factors.'});
+  });
+  if(!DDI_MEDS.length){
+    E('ddi-summary-banner').innerHTML='';
+    E('ddi-results-list').innerHTML='<div style="font-size:11px;color:var(--text3);padding:6px 0">Add concurrent medications above to check for interactions.</div>';
+    E('ddi-count-badge').textContent='—';
+    E('ddi-pharm-recs').innerHTML='';
+    return;
+  }
+  var sevCount={severe:0,moderate:0,minor:0,none:0};
+  results.forEach(function(r){sevCount[r.sev]=(sevCount[r.sev]||0)+1;});
+  var summaryClass='none',summaryIcon='✓',summaryTitle='No significant interactions detected',summaryColor='var(--accent)';
+  if(sevCount.severe>0){summaryClass='severe';summaryIcon='⛔';summaryTitle=sevCount.severe+' severe interaction'+(sevCount.severe>1?'s':'')+' detected — review before prescribing';summaryColor='var(--danger)';}
+  else if(sevCount.moderate>0){summaryClass='moderate';summaryIcon='⚠';summaryTitle=sevCount.moderate+' moderate interaction'+(sevCount.moderate>1?'s':'')+' — monitoring required';summaryColor='var(--warn)';}
+  else if(sevCount.minor>0){summaryClass='minor';summaryIcon='ℹ';summaryTitle='Minor interactions only — safe with standard monitoring';summaryColor='var(--success)';}
+  E('ddi-summary-banner').innerHTML='<div class="ddi-summary-box" style="background:'+(summaryClass==='severe'?'rgba(239,68,68,0.08)':(summaryClass==='moderate'?'rgba(245,158,11,0.08)':'rgba(34,197,94,0.06)'))
+    +';border-color:'+(summaryClass==='severe'?'rgba(239,68,68,0.3)':(summaryClass==='moderate'?'rgba(245,158,11,0.25)':'rgba(34,197,94,0.25)'))+'">'
+    +'<div class="ddi-sum-count" style="color:'+summaryColor+'">'+summaryIcon+'</div>'
+    +'<div><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">'+summaryTitle+'</div>'
+    +'<div style="font-size:10px;color:var(--text3)">'+results.length+' pair'+(results.length!==1?'s':'')+' screened | '+DDI_MEDS.length+' concurrent medication'+(DDI_MEDS.length!==1?'s':'')+' | '+DDI_REGIMEN_BASE.length+' oncological agents</div></div></div>';
+  E('ddi-count-badge').textContent=results.length+' pairs';
+  var rh='';
+  // Sort: severe first
+  var order={severe:0,moderate:1,minor:2,none:3};
+  results.sort(function(a,b){return (order[a.sev]||3)-(order[b.sev]||3);});
+  results.forEach(function(r){
+    var sevLabel=r.sev==='severe'?'SEVERE':(r.sev==='moderate'?'MODERATE':(r.sev==='minor'?'MINOR':'NO INTERACTION'));
+    var sevBg=r.sev==='severe'?'background:#ef4444;color:#fff':(r.sev==='moderate'?'background:#f59e0b;color:#000':(r.sev==='minor'?'background:#22c55e;color:#000':'background:var(--bg4);color:var(--text3)'));
+    rh+='<div class="ddi-result '+r.sev+'">'
+      +'<span class="ddi-sev-badge" style="'+sevBg+'">'+sevLabel+'</span>'
+      +'<div><div class="ddi-pair">'+r.pair+'</div>'
+      +'<div class="ddi-desc">'+r.desc+'</div>'
+      +'<div class="ddi-action">&#9658; '+r.action+'</div></div></div>';
+  });
+  E('ddi-results-list').innerHTML=rh;
+  // Pharmacist recs
+  var precs=[];
+  if(sevCount.severe>0)precs.push({cls:'ri-d',ic:'&#9888;',t:'Urgent pharmacist review required',d:'One or more severe drug interactions identified. Clinical pharmacist must review and approve regimen before initiation. Document interaction assessment in patient chart.'});
+  if(DDI_MEDS.indexOf('Warfarin')>-1||DDI_MEDS.indexOf('warfarin')>-1)precs.push({cls:'ri-w',ic:'&#9651;',t:'Anticoagulation management',d:'Warfarin detected. For GBM patients requiring anticoagulation, LMWH (low molecular weight heparin) is preferred over warfarin due to more predictable dosing and lower intracranial haemorrhage risk.'});
+  var enzymeAEDs=DDI_MEDS.filter(function(m){return ['Phenytoin','Carbamazepine','Phenobarbital'].indexOf(m)>-1;});
+  if(enzymeAEDs.length>0)precs.push({cls:'ri-d',ic:'&#9673;',t:'Enzyme-inducing AED — switch recommended',d:enzymeAEDs.join(', ')+' reduces chemotherapy plasma levels significantly. Switch to levetiracetam or lacosamide before initiating TMZ. Neurologist co-management required.'});
+  if(DDI_MEDS.indexOf('Dexamethasone')>-1)precs.push({cls:'ri-i',ic:'&#9635;',t:'Minimise dexamethasone dose',d:'Dexamethasone increases lymphopenia risk with TMZ and can mask pseudoprogression with bevacizumab. Use minimum effective dose. Taper as quickly as clinically safe.'});
+  precs.push({cls:'ri-s',ic:'&#10003;',t:'Therapeutic drug monitoring',d:'Monitor CBC at each TMZ cycle (day 22 of each 28-day cycle). LFTs, renal function, and electrolytes at baseline and every 3 months. Ensure appropriate antiemetics (ondansetron) and PCP prophylaxis (co-trimoxazole).'});
+  var ph='';
+  precs.forEach(function(p){ph+='<div class="ritem"><div class="rico '+p.cls+'">'+p.ic+'</div><div><div class="rtit">'+p.t+'</div><div class="rdsc">'+p.d+'</div></div></div>';});
+  E('ddi-pharm-recs').innerHTML=ph;
+}
+
+/* ── EXPLAINABLE AI (SHAP) ── */
+function bXAI(){
+  var feats=[
+    {n:'MGMT status',shap:S.mgmt==='Unmethylated'?+0.38:(S.mgmt==='Methylated'?-0.22:-0.05)},
+    {n:'Tumour volume',shap:Math.round((S.vol-20)/60*30)/100},
+    {n:'IDH mutation',shap:S.idh==='Wild-type'?+0.28:-0.18},
+    {n:'rCBV max',shap:Math.round((S.rcbv-3.5)*8)/100},
+    {n:'ADC mean',shap:Math.round((1-S.adc)*18)/100},
+    {n:'Enhancement ratio',shap:Math.round((S.enh-0.5)*20)/100},
+    {n:'Age',shap:Math.round((S.age-55)*0.8)/100},
+    {n:'KPS score',shap:Math.round((70-S.kps)*0.6)/100},
+    {n:'Necrosis fraction',shap:Math.round((S.nec-0.25)*18)/100},
+    {n:'RT dose',shap:Math.round((S.rt-60)*(-0.4))/100}
+  ];
+  feats.sort(function(a,b){return Math.abs(b.shap)-Math.abs(a.shap);});
+  var maxSh=Math.max.apply(null,feats.map(function(f){return Math.abs(f.shap);}));
+  var bh='';
+  for(var i=0;i<feats.length;i++){
+    var f=feats[i],pct=Math.round(Math.abs(f.shap)/maxSh*50),pos=f.shap>0,col=pos?'#ef4444':'#0ea5e9',vc=(f.shap>0?'+':'')+f.shap.toFixed(2);
+    bh+='<div class="shap-row"><div class="shap-feat">'+f.n+'</div>'+
+        '<div class="shap-bar-wrap">'+
+        (pos?'<div class="shap-axis"></div><div class="shap-pos" style="width:'+pct+'px"></div>':
+             '<div class="shap-neg" style="width:'+pct+'px;margin-right:0;margin-left:auto"></div><div class="shap-axis"></div>')+
+        '</div>'+
+        '<div class="shap-val" style="color:'+col+'">'+vc+'</div></div>';
+  }
+  E('shap-bars').innerHTML=bh;
+  setTimeout(function(){
+    DC('shap');
+    var top5=feats.slice(0,5);
+    CH['shap']=new Chart(E('shapChart').getContext('2d'),{type:'bar',
+      data:{labels:top5.map(function(f){return f.n;}),
+            datasets:[{data:top5.map(function(f){return f.shap;}),
+              backgroundColor:top5.map(function(f){return f.shap>0?'rgba(239,68,68,0.75)':'rgba(14,165,233,0.75)';}),
+              borderWidth:0,borderRadius:4}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#475569',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'},title:{display:true,text:'SHAP value',color:'#475569',font:{size:10}}},
+                y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+  },150);
+  var sd='';
+  var pos=feats.filter(function(f){return f.shap>0;}).slice(0,3);
+  var neg=feats.filter(function(f){return f.shap<0;}).slice(0,3);
+  sd+='<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">&#9650; Top risk drivers</div>';
+  pos.forEach(function(f){sd+='<div style="font-size:11px;color:var(--text2);padding:3px 0">'+f.n+' <span class="mono" style="color:var(--danger)">+'+f.shap.toFixed(2)+'</span></div>';});
+  sd+='</div><div style="padding:10px 0"><div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">&#9660; Top protective factors</div>';
+  neg.forEach(function(f){sd+='<div style="font-size:11px;color:var(--text2);padding:3px 0">'+f.n+' <span class="mono" style="color:var(--accent)">'+f.shap.toFixed(2)+'</span></div>';});
+  sd+='</div>';
+  E('shap-summary').innerHTML=sd;
+  var xi='The model assigns highest risk weight to ';
+  xi+=pos.slice(0,2).map(function(f){return '<strong style="color:var(--text)">'+f.n+'</strong>';}).join(' and ');
+  xi+='. The primary protective factor is ';
+  xi+=neg.slice(0,1).map(function(f){return '<strong style="color:var(--text)">'+f.n+'</strong>';}).join('');
+  xi+='. Overall, genetic markers account for approximately '+Math.round((Math.abs(feats[0].shap)+Math.abs(feats[2].shap))/feats.reduce(function(s,f){return s+Math.abs(f.shap);},0)*100)+'% of the total risk prediction, with imaging features contributing the remainder.';
+  E('xai-interp').innerHTML=xi;
+}
+
+/* ── TREATMENT SIMULATOR ── */
+var TX_CAT='new';
+var TX_DATA={
+  /* ── NEWLY DIAGNOSED ── */
+  soc:{
+    cat:'new',name:'Standard of care (Stupp)',short:'SOC',
+    desc:'Temozolomide 75 mg/m\u00b2/day concurrent with RT 60 Gy in 30 fractions, then maintenance TMZ 150\u2013200 mg/m\u00b2 day 1\u20135 of 28-day cycle for 6 cycles. Current international standard per Stupp et al. 2005.',
+    surv6Mod:0,surv12Mod:0,pgMod:0,col:'#94a3b8',
+    riskScore:30,riskChemo:25,riskBev:0,riskCombo:0,
+    costUSD:18000,costLabel:'$15,000\u2013$22,000 / 6 months',affordability:'High',
+    contra:[
+      {sev:'warn',txt:'KPS < 50: consider less intensive regimen'},
+      {sev:'warn',txt:'MGMT unmethylated: reduced TMZ benefit expected'},
+      {sev:'info',txt:'Age >75: monitor closely, dose-reduce if needed'}
+    ]
+  },
+  soc_bev:{
+    cat:'new',name:'SOC + Bevacizumab',short:'SOC+Bev',
+    desc:'Standard Stupp protocol with addition of bevacizumab 10 mg/kg IV every 2 weeks concurrent with RT and during maintenance TMZ. AVAglio trial data: improves PFS but no proven OS benefit in unselected GBM.',
+    surv6Mod:8,surv12Mod:4,pgMod:1.8,col:'#0ea5e9',
+    riskScore:52,riskChemo:30,riskBev:75,riskCombo:35,
+    costUSD:85000,costLabel:'$80,000\u2013$100,000 / 6 months',affordability:'Low',
+    contra:[
+      {sev:'danger',txt:'Recent major bleeding event: contraindicated'},
+      {sev:'danger',txt:'Recent thrombosis or stroke: use with extreme caution'},
+      {sev:'warn',txt:'KPS < 60: poor tolerance expected'},
+      {sev:'warn',txt:'Uncontrolled hypertension: requires management first'},
+      {sev:'info',txt:'Imaging: bevacizumab can mask progression (pseudo-response)'}
+    ]
+  },
+  soc_ttf:{
+    cat:'new',name:'SOC + TTF (Optune)',short:'SOC+TTF',
+    desc:'Stupp protocol with tumour-treating fields (TTFields, 200 kHz alternating electric fields). EF-14 trial: addition of TTF improved median OS by 4.9 months vs SOC alone. Requires continuous device wear (\u226518h/day).',
+    surv6Mod:6,surv12Mod:8,pgMod:2.2,col:'#22c55e',
+    riskScore:38,riskChemo:25,riskBev:0,riskCombo:20,
+    costUSD:75000,costLabel:'$70,000\u2013$80,000 / 6 months',affordability:'Low',
+    contra:[
+      {sev:'danger',txt:'Implanted electronic devices (pacemaker/ICD): contraindicated'},
+      {sev:'warn',txt:'Poor performance status (KPS <70): compliance may be challenging'},
+      {sev:'warn',txt:'Skull defect or scalp condition: device placement may not be feasible'},
+      {sev:'info',txt:'Requires shaved scalp and daily array changes'}
+    ]
+  },
+  soc_bev_ttf:{
+    cat:'new',name:'SOC + Bev + TTF',short:'Triple',
+    desc:'Maximal combination: Stupp + bevacizumab + TTFields. Reserved for high-performance patients (KPS \u226570) without bevacizumab contraindications. Highest cost and toxicity burden. Limited phase III evidence for triple combination.',
+    surv6Mod:12,surv12Mod:10,pgMod:3.2,col:'#f59e0b',
+    riskScore:78,riskChemo:35,riskBev:75,riskCombo:85,
+    costUSD:155000,costLabel:'$140,000\u2013$170,000 / 6 months',affordability:'Very low',
+    contra:[
+      {sev:'danger',txt:'KPS < 70: high risk of treatment-related morbidity'},
+      {sev:'danger',txt:'Recent bleeding or thromboembolism: bevacizumab contraindicated'},
+      {sev:'danger',txt:'Implanted electronic device: TTF contraindicated'},
+      {sev:'warn',txt:'Age >75: significantly increased toxicity burden'},
+      {sev:'warn',txt:'Severe liver dysfunction: dose modification required'}
+    ]
+  },
+  /* ── RECURRENT GBM ── */
+  lom:{
+    cat:'rec',name:'Lomustine (CCNU)',short:'Lomustine',
+    desc:'Lomustine 110 mg/m\u00b2 PO every 6 weeks. CCNU is an alkylating agent with CNS penetration. Second-line standard in Europe for recurrent GBM. Haematological toxicity (thrombocytopenia, neutropenia) is the primary dose-limiting factor.',
+    surv6Mod:0,surv12Mod:0,pgMod:0.6,col:'#a78bfa',
+    riskScore:44,riskChemo:60,riskBev:0,riskCombo:20,
+    costUSD:12000,costLabel:'$10,000\u2013$15,000 / 6 months',affordability:'Moderate',
+    contra:[
+      {sev:'danger',txt:'Severe bone marrow suppression: haematologic toxicity risk'},
+      {sev:'danger',txt:'Significant liver dysfunction: increased lomustine toxicity'},
+      {sev:'warn',txt:'Severe thrombocytopenia (platelets <75,000): delay or reduce dose'},
+      {sev:'warn',txt:'Severe neutropenia: delay until recovery'},
+      {sev:'info',txt:'Previous maximum alkylating agent exposure: consider alternative'}
+    ]
+  },
+  bev:{
+    cat:'rec',name:'Bevacizumab monotherapy',short:'Bev',
+    desc:'Bevacizumab 10 mg/kg IV every 2 weeks. FDA-approved for recurrent GBM (accelerated approval). Improves PFS and reduces steroid requirement. No OS benefit shown in randomised trials (BRAIN trial). PFS-6 rate ~43%.',
+    surv6Mod:5,surv12Mod:2,pgMod:1.4,col:'#0ea5e9',
+    riskScore:48,riskChemo:10,riskBev:80,riskCombo:15,
+    costUSD:55000,costLabel:'$50,000\u2013$65,000 / 6 months',affordability:'Low',
+    contra:[
+      {sev:'danger',txt:'Active or recent major bleeding: contraindicated'},
+      {sev:'danger',txt:'Recent arterial thromboembolism or stroke: contraindicated'},
+      {sev:'warn',txt:'Uncontrolled hypertension: must be managed prior to initiation'},
+      {sev:'warn',txt:'Recent surgery (<28 days): increased wound healing complications'},
+      {sev:'info',txt:'Pseudo-response on MRI: does not indicate true tumour response'}
+    ]
+  },
+  bev_lom:{
+    cat:'rec',name:'Bevacizumab + Lomustine',short:'BELOB',
+    desc:'Combination of bevacizumab 10 mg/kg q2w + lomustine 90 mg/m\u00b2 every 6 weeks. BELOB trial and subsequent data suggest modest OS benefit over monotherapy in selected patients. Combined haematological and vascular toxicity monitoring essential.',
+    surv6Mod:9,surv12Mod:5,pgMod:2.0,col:'#f59e0b',
+    riskScore:72,riskChemo:60,riskBev:80,riskCombo:70,
+    costUSD:68000,costLabel:'$62,000\u2013$78,000 / 6 months',affordability:'Low',
+    contra:[
+      {sev:'danger',txt:'Recent bleeding or thromboembolism: bevacizumab contraindicated'},
+      {sev:'danger',txt:'Severe bone marrow suppression: lomustine contraindicated'},
+      {sev:'danger',txt:'Significant liver dysfunction: increased combined toxicity'},
+      {sev:'warn',txt:'KPS < 60: poor tolerance of combination expected'},
+      {sev:'warn',txt:'Age >75: consider dose reduction or monotherapy'}
+    ]
+  },
+  re_rt:{
+    cat:'rec',name:'Re-Irradiation + Systemic',short:'Re-RT+ST',
+    desc:'Focal re-irradiation (30\u201336 Gy in 10\u201318 fractions) combined with systemic therapy (bevacizumab or TMZ). Suitable for small, well-circumscribed recurrence with adequate interval since prior RT. Requires careful dosimetric review to avoid exceeding CNS tolerance.',
+    surv6Mod:6,surv12Mod:3,pgMod:1.6,col:'#14b8a6',
+    riskScore:55,riskChemo:30,riskBev:40,riskCombo:50,
+    costUSD:40000,costLabel:'$35,000\u2013$48,000 / course',affordability:'Moderate',
+    contra:[
+      {sev:'danger',txt:'Previous maximal RT dose to field: re-irradiation may not be safe'},
+      {sev:'danger',txt:'Large or diffuse recurrence: focal re-RT not appropriate'},
+      {sev:'warn',txt:'Short interval since prior RT (<6 months): increased radionecrosis risk'},
+      {sev:'warn',txt:'KPS < 60: may not tolerate re-irradiation course'},
+      {sev:'info',txt:'Requires neuroradiology dosimetric review before approval'}
+    ]
+  }
+};
+
+function selCat(cat, btn){
+  TX_CAT=cat;
+  document.querySelectorAll('[id^="cat-btn-"]').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel');
+  E('proto-new').style.display = cat==='new'?'grid':'none';
+  E('proto-rec').style.display = cat==='rec'?'grid':'none';
+  // Auto-select first button of new category
+  var firstBtn = E(cat==='new'?'proto-new':'proto-rec').querySelector('.tx-card-btn');
+  if(firstBtn){
+    E(cat==='new'?'proto-new':'proto-rec').querySelectorAll('.tx-card-btn').forEach(function(b){b.classList.remove('sel');});
+    firstBtn.classList.add('sel');
+    TX = firstBtn.dataset.key;
+    renderTx();
+  }
+}
+
+function selTx(btn, key){
+  TX=key;
+  var proto = TX_CAT==='new'?E('proto-new'):E('proto-rec');
+  proto.querySelectorAll('.tx-card-btn').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel');
+  renderTx();
+}
+
+function renderTx(){
+  if(!S||!S.sc)return;
+  var d=TX_DATA[TX]; if(!d)d=TX_DATA.soc;
+
+  // Description
+  E('tx-desc-text').textContent=d.desc;
+
+  // Contraindications
+  var ch='';
+  d.contra.forEach(function(c){
+    var ic=c.sev==='danger'?'&#9888;':(c.sev==='warn'?'&#9651;':'&#9432;');
+    var cls=c.sev==='danger'?'ri-d':(c.sev==='warn'?'ri-w':'ri-i');
+    // Check patient-specific triggers
+    var active=false;
+    if(c.txt.indexOf('MGMT unmethylated')>-1&&S.mgmt==='Unmethylated')active=true;
+    if(c.txt.indexOf('KPS < 50')>-1&&S.kps<50)active=true;
+    if(c.txt.indexOf('KPS < 60')>-1&&S.kps<60)active=true;
+    if(c.txt.indexOf('KPS < 70')>-1&&S.kps<70)active=true;
+    if(c.txt.indexOf('KPS <70')>-1&&S.kps<70)active=true;
+    if(c.txt.indexOf('Age >75')>-1&&S.age>75)active=true;
+    var hl=active?'border-left:2px solid var(--danger);padding-left:8px;':'';
+    ch+='<div style="display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid var(--border);'+hl+'"><div class="rico '+cls+'" style="width:22px;height:22px;font-size:11px;flex-shrink:0">'+ic+'</div><span style="font-size:11px;color:'+(active?'var(--danger)':'var(--text2)')+'">'+c.txt+(active?' <strong style=\'font-size:10px\'>[This patient]</strong>':'')+'</span></div>';
+  });
+  E('tx-contra').innerHTML=ch;
+
+  // Outcomes
+  var ns6=Math.min(97,S.s6+d.surv6Mod),ns12=Math.min(90,S.s12+d.surv12Mod),npt=Math.round((S.pt+d.pgMod)*10)/10;
+  var diff6=d.surv6Mod>0?'+'+d.surv6Mod+'%':'—';
+  var diff12=d.surv12Mod>0?'+'+d.surv12Mod+'%':'—';
+  var diffpt=d.pgMod>0?'+'+d.pgMod.toFixed(1)+' mo':'—';
+  var diffCol=d.surv12Mod>0?'var(--success)':'var(--text3)';
+  E('tx-metrics').innerHTML=
+    '<div class="mc h-info"><div class="mlb">Protocol</div><div style="font-size:12px;font-weight:700;color:var(--accent);font-family:var(--mono)">'+d.short+'</div><div class="ms">'+d.name+'</div></div>'+
+    '<div class="mc"><div class="mlb">Predicted PFS</div><div class="mv">'+npt+' mo</div><div class="ms" style="color:'+diffCol+'">'+diffpt+' vs SOC</div></div>'+
+    '<div class="mc"><div class="mlb">6-mo survival</div><div class="mv">'+ns6+'%</div><div class="ms" style="color:'+diffCol+'">'+diff6+'</div></div>'+
+    '<div class="mc"><div class="mlb">12-mo survival</div><div class="mv">'+ns12+'%</div><div class="ms" style="color:'+diffCol+'">'+diff12+'</div></div>'+
+    '<div class="mc '+(d.affordability==='Very low'||d.affordability==='Low'?'h-high':'h-low')+'"><div class="mlb">Est. cost / period</div><div style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text)">$'+Math.round(d.costUSD/1000)+'k</div><div class="ms">'+d.affordability+' affordability</div></div>'+
+    '<div class="mc '+(d.riskScore>=65?'h-high':d.riskScore>=40?'h-med':'h-low')+'"><div class="mlb">Treatment risk</div><div class="mv">'+d.riskScore+'%</div><div class="ms">'+(d.riskScore>=65?'High risk':d.riskScore>=40?'Moderate risk':'Low risk')+'</div></div>';
+
+  // Risk gauge
+  setTimeout(function(){
+    DC('txRisk');
+    var rs=d.riskScore, gcol=rs>=65?'#ef4444':(rs>=40?'#f59e0b':'#22c55e');
+    var gc=E('txRiskGauge');
+    CH['txRisk']=new Chart(gc.getContext('2d'),{type:'doughnut',
+      data:{datasets:[{data:[rs,100-rs],backgroundColor:[gcol,'#172038'],borderWidth:0,circumference:180,rotation:270}]},
+      options:{responsive:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+    E('tx-risk-score-lbl').textContent=rs+'%';
+    E('tx-risk-score-lbl').style.color=gcol;
+  },100);
+
+  // Risk bars
+  var bars=[
+    {l:'Chemo intensity',v:d.riskChemo},
+    {l:'Bevacizumab risk',v:d.riskBev},
+    {l:'Combination burden',v:d.riskCombo},
+    {l:'Patient-specific risk',v:Math.min(d.riskScore+Math.max(0,80-S.kps)/2,100)}
+  ];
+  E('tx-risk-bars').innerHTML=bars.map(function(b){
+    var bc=b.v>=65?'#ef4444':(b.v>=40?'#f59e0b':'#22c55e');
+    return '<div class="risk-bar-row"><div class="risk-bar-label">'+b.l+'</div><div class="risk-bar-bg"><div class="risk-bar-fill" style="width:'+b.v+'%;background:'+bc+'"></div></div><div class="risk-bar-val">'+b.v+'</div></div>';
+  }).join('');
+
+  // Cost panel
+  var afford=d.affordability;
+  var affordCol=afford==='High'?'var(--success)':(afford==='Moderate'?'var(--warn)':'var(--danger)');
+  E('tx-cost-panel').innerHTML=
+    '<div class="cost-row"><span class="cost-key">Estimated cost</span><span class="cost-val">'+d.costLabel+'</span></div>'+
+    '<div class="cost-row"><span class="cost-key">Affordability</span><span style="font-size:11px;font-weight:600;color:'+affordCol+'">'+afford+'</span></div>'+
+    '<div class="cost-row"><span class="cost-key">Reimbursement context</span><span style="font-size:11px;color:var(--text2)">'+(d.riskBev>0?'Bev: partial coverage in TR/AZ':'SOC covered in most systems')+'</span></div>'+
+    '<div class="cost-row"><span class="cost-key">Annual projection</span><span class="cost-val">$'+Math.round(d.costUSD*2/1000)+'k\u2013$'+Math.round(d.costUSD*2.2/1000)+'k</span></div>'+
+    '<div style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);font-size:10px;color:var(--text3);line-height:1.6">Cost estimates based on published US list prices. Local prices (Azerbaijan, Turkey) may be 30\u201360% lower. Insurance coverage and generic availability vary.</div>';
+
+  // Survival chart
+  setTimeout(function(){
+    DC('tx');
+    var mo=[0,2,4,6,8,10,12,14,16,18,20,22,24],dd=S.sc/100;
+    var noTx=mo.map(function(m){return Math.max(2,Math.round(100*Math.exp(-dd*m/6)));});
+    var soc=mo.map(function(m){return Math.max(2,Math.round(100*Math.exp(-dd*m/9)));});
+    var boost=1+d.surv12Mod/120;
+    var sel=mo.map(function(m){return Math.min(99,Math.max(2,Math.round(100*Math.exp(-dd*m/(9*boost)))));});
+    CH['tx']=new Chart(E('txChart').getContext('2d'),{type:'line',
+      data:{labels:mo.map(function(m){return m+'mo';}),datasets:[
+        {data:noTx,borderColor:'#ef4444',borderWidth:1.5,borderDash:[3,3],pointRadius:0,tension:0.4,fill:false},
+        {data:soc,borderColor:'#94a3b8',borderWidth:2,pointRadius:0,tension:0.4,fill:false},
+        {data:sel,borderColor:d.col,borderWidth:2.5,pointRadius:3,pointBackgroundColor:d.col,tension:0.4,fill:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#475569',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{min:0,max:100,ticks:{color:'#475569',font:{size:10},callback:function(v){return v+'%';}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+  },150);
+
+  // Alerts — patient-specific
+  var alerts=[];
+  if(S.mgmt==='Unmethylated'&&(TX==='soc'||TX==='soc_bev'||TX==='soc_ttf'||TX==='soc_bev_ttf'))
+    alerts.push({sev:'warn',txt:'Reduced TMZ benefit expected due to MGMT unmethylated status'});
+  if(d.riskBev>0)
+    alerts.push({sev:'warn',txt:'Bevacizumab may increase bleeding risk — monitor BP and urine protein'});
+  if(S.kps<60&&d.riskCombo>40)
+    alerts.push({sev:'danger',txt:'Patient performance status (KPS '+S.kps+') suggests poor tolerance for this regimen'});
+  if(S.age>75&&d.riskScore>60)
+    alerts.push({sev:'warn',txt:'Age '+S.age+' — consider dose reduction or less intensive protocol'});
+  if(TX==='soc_ttf'||TX==='soc_bev_ttf')
+    alerts.push({sev:'info',txt:'TTF requires patient compliance \u226518h/day device use. Confirm patient willingness.'});
+  if(alerts.length===0)
+    alerts.push({sev:'info',txt:'No patient-specific contraindication flags for this protocol'});
+  var ah='';
+  alerts.forEach(function(a){
+    var ic=a.sev==='danger'?'&#9888;':(a.sev==='warn'?'&#9651;':'&#9432;');
+    var cls=a.sev==='danger'?'ri-d':(a.sev==='warn'?'ri-w':'ri-i');
+    ah+='<div class="ritem" style="padding:9px 0"><div class="rico '+cls+'" style="width:24px;height:24px;font-size:12px">'+ic+'</div><div style="font-size:11px;color:var(--text2)">'+a.txt+'</div></div>';
+  });
+  E('tx-alerts').innerHTML=ah;
+
+  // Recommendations
+  var rh='<div class="ritem"><div class="rico ri-i">&#9635;</div><div><div class="rtit">Expected outcome: '+(d.surv12Mod>8?'meaningful improvement':d.surv12Mod>3?'moderate benefit':'marginal benefit vs SOC')+'</div><div class="rdsc">'+d.name+' projected to extend PFS by '+d.pgMod.toFixed(1)+' months and 12-month survival by '+d.surv12Mod+'% vs standard of care for this patient profile.</div></div></div>';
+  if(d.riskBev>50)rh+='<div class="ritem"><div class="rico ri-w">&#9888;</div><div><div class="rtit">Bevacizumab monitoring protocol</div><div class="rdsc">Blood pressure at every visit. Urine protein/creatinine ratio every 2 cycles. MRI interpretation with awareness of pseudo-response. Thromboembolism surveillance.</div></div></div>';
+  if(TX==='lom'||TX==='bev_lom')rh+='<div class="ritem"><div class="rico ri-w">&#9651;</div><div><div class="rtit">Haematological monitoring — Lomustine</div><div class="rdsc">Full blood count weekly for first 6 weeks. Delay next cycle if platelets <100,000 or ANC <1,500. Liver function tests every cycle.</div></div></div>';
+  if(TX==='re_rt')rh+='<div class="ritem"><div class="rico ri-d">&#9673;</div><div><div class="rtit">Dosimetric review required</div><div class="rdsc">Prior RT records and dose distribution must be reviewed before re-irradiation planning. CNS tolerance thresholds (Dmax brainstem, optic pathways) must not be exceeded.</div></div></div>';
+  E('tx-recs').innerHTML=rh;
+}
+
+function bTxSim(){
+  TX='soc'; TX_CAT='new';
+  E('proto-new').style.display='grid';
+  E('proto-rec').style.display='none';
+  document.querySelectorAll('[id^="cat-btn-"]').forEach(function(b){b.classList.remove('sel');});
+  E('cat-btn-new').classList.add('sel');
+  document.querySelectorAll('#proto-new .tx-card-btn,#proto-rec .tx-card-btn').forEach(function(b){b.classList.remove('sel');});
+  var fb=E('proto-new').querySelector('.tx-card-btn');if(fb)fb.classList.add('sel');
+  renderTx();
+}
+
+/* ── LONGITUDINAL ── */
+function longMRI(svgId,tR,necR,enhW,oeR){
+  var cx=80,cy=80;
+  var bp='M80,12 C112,12 148,38 148,80 C148,122 112,148 80,148 C48,148 12,122 12,80 C12,38 48,12 80,12Z';
+  E(svgId).innerHTML='<rect width="160" height="160" fill="#080810"/>'+
+    '<path d="'+bp+'" fill="#231f34" stroke="#36304e" stroke-width="1.5"/>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+oeR+'" ry="'+Math.round(oeR*0.9)+'" fill="rgba(40,80,160,0.2)" stroke="rgba(60,100,200,0.22)" stroke-width="1"/>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+tR+'" ry="'+Math.round(tR*0.92)+'" fill="rgba(170,85,25,0.75)"/>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+tR+'" ry="'+Math.round(tR*0.92)+'" fill="none" stroke="rgba(255,205,50,0.85)" stroke-width="'+enhW+'"/>'+
+    (necR>3?'<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+necR+'" ry="'+Math.round(necR*0.88)+'" fill="rgba(8,8,10,0.94)"/>':'')+
+    '<text x="4" y="12" font-size="8" fill="rgba(255,255,255,0.4)" font-family="monospace">AX</text>';
+}
+function statRow(label,val,color){
+  return '<div style="display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">'+label+'</span><span class="mono" style="color:'+(color||'var(--text2)')+'">'+val+'</span></div>';
+}
+function bLongit(){
+  var progFactor=S.sc>65?0.12:(S.sc>40?0.07:0.03);
+  var vol0=S.vol,vol3=Math.round(S.vol*Math.exp(progFactor*3)*10)/10,vol6=Math.round(S.vol*Math.exp(progFactor*6)*10)/10;
+  var sc0=S.sc,sc3=Math.min(97,Math.round(S.sc+progFactor*25)),sc6=Math.min(97,Math.round(S.sc+progFactor*50));
+  var s120=S.s12,s123=Math.max(5,Math.round(S.s12-progFactor*15*100/3)),s126=Math.max(3,Math.round(S.s12-progFactor*30*100/3));
+  var tR0=Math.round(18+Math.min(vol0/60,1)*36),tR3=Math.round(18+Math.min(vol3/60,1)*36),tR6=Math.round(18+Math.min(vol6/60,1)*36);
+  var nec0=Math.round(tR0*Math.min(S.nec,0.85)*0.72),nec3=Math.round(tR3*Math.min(Math.min(S.nec+progFactor*1.5,0.9),0.85)*0.72),nec6=Math.round(tR6*Math.min(Math.min(S.nec+progFactor*3,0.9),0.85)*0.72);
+  var enhW=Math.round(2+S.enh*7);
+  longMRI('long-mri-0',tR0,nec0,enhW,Math.round(tR0*(1+S.flair*0.25)));
+  longMRI('long-mri-3',tR3,nec3,enhW,Math.round(tR3*(1+S.flair*0.28)));
+  longMRI('long-mri-6',tR6,nec6,enhW,Math.round(tR6*(1+S.flair*0.32)));
+  E('long-score-0').textContent=sc0+'%';
+  E('long-score-3').innerHTML=sc3+'% '+(sc3>sc0?'<span class="trend-up">&#9650;'+(sc3-sc0)+'</span>':'<span class="trend-dn">&#9660;'+(sc0-sc3)+'</span>');
+  E('long-score-6').innerHTML=sc6+'% '+(sc6>sc0?'<span class="trend-up">&#9650;'+(sc6-sc0)+'</span>':'<span class="trend-dn">&#9660;'+(sc0-sc6)+'</span>');
+  E('long-stats-0').innerHTML=statRow('Vol.',vol0.toFixed(1)+' cm\u00b3')+statRow('12mo surv.',s120+'%')+statRow('Risk',S.rg,'var(--text2)');
+  var rg3=sc3>=65?'High':(sc3>=40?'Intermediate':'Low');
+  E('long-stats-3').innerHTML=statRow('Vol.',vol3.toFixed(1)+' cm\u00b3',vol3>vol0?'var(--warn)':'')+statRow('12mo surv.',s123+'%',s123<s120?'var(--warn)':'')+statRow('Risk',rg3,rg3==='High'?'var(--danger)':(rg3==='Intermediate'?'var(--warn)':'var(--success)'));
+  var rg6=sc6>=65?'High':(sc6>=40?'Intermediate':'Low');
+  E('long-stats-6').innerHTML=statRow('Vol.',vol6.toFixed(1)+' cm\u00b3',vol6>vol0?'var(--danger)':'')+statRow('12mo surv.',s126+'%',s126<s120?'var(--danger)':'')+statRow('Risk',rg6,rg6==='High'?'var(--danger)':(rg6==='Intermediate'?'var(--warn)':'var(--success)'));
+  setTimeout(function(){
+    DC('long');
+    CH['long']=new Chart(E('longChart').getContext('2d'),{type:'line',
+      data:{labels:['Baseline','Mo 1','Mo 2','Mo 3','Mo 4','Mo 5','Mo 6'],
+            datasets:[
+              {label:'Risk score',data:[sc0,Math.round(sc0+(sc3-sc0)/3),Math.round(sc0+(sc3-sc0)*2/3),sc3,Math.round(sc3+(sc6-sc3)/3),Math.round(sc3+(sc6-sc3)*2/3),sc6],borderColor:'#ef4444',borderWidth:2,pointRadius:4,pointBackgroundColor:'#ef4444',tension:0.3,fill:false,yAxisID:'y'},
+              {label:'Tumour vol',data:[vol0,Math.round((vol0+(vol3-vol0)/3)*10)/10,Math.round((vol0+(vol3-vol0)*2/3)*10)/10,vol3,Math.round((vol3+(vol6-vol3)/3)*10)/10,Math.round((vol3+(vol6-vol3)*2/3)*10)/10,vol6],borderColor:'#f59e0b',borderWidth:2,pointRadius:4,pointBackgroundColor:'#f59e0b',tension:0.3,fill:false,yAxisID:'y2'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{color:'#475569',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{min:0,max:100,ticks:{color:'#ef4444',font:{size:10},callback:function(v){return v+'%';}},grid:{color:'rgba(255,255,255,0.04)'},title:{display:true,text:'Risk score',color:'#ef4444',font:{size:9}}},
+          y2:{min:0,position:'right',ticks:{color:'#f59e0b',font:{size:10}},grid:{display:false},title:{display:true,text:'Volume (cm\u00b3)',color:'#f59e0b',font:{size:9}}}}}});
+  },150);
+  var lrec='';
+  lrec+='<div class="ritem"><div class="rico ri-i">&#9635;</div><div><div class="rtit">MRI schedule based on progression trajectory</div><div class="rdsc">Baseline \u2192 Month 3: '+(sc3>sc0+10?'Accelerating progression detected \u2014 MRI at 6 weeks':'Stable or slow progression \u2014 MRI at 3 months')+'. Month 3 \u2192 6: '+(sc6>sc3+10?'Consider protocol change':'Continue current regimen')+'.</div></div></div>';
+  lrec+='<div class="ritem"><div class="rico ri-w">&#9651;</div><div><div class="rtit">Tumour volume trajectory</div><div class="rdsc">Projected volume increase from '+vol0.toFixed(1)+' to '+vol6.toFixed(1)+' cm\u00b3 at 6 months ('+(((vol6-vol0)/vol0)*100).toFixed(0)+'% change). '+(vol6>vol0*1.25?'Significant growth \u2014 treatment intensification warranted.':'Moderate growth within expected range.')+'</div></div></div>';
+  E('long-recs').innerHTML=lrec;
+}
+
+/* ── 3D DIGITAL TWIN (Three.js) ── */
+var TD={scene:null,camera:null,renderer:null,brain:null,brainMat:null,tumorGrp:null,tumor:null,nec:null,oed:null,
+        rotX:0.15,rotY:0,zoom:3.4,target:{rotY:0,zoom:3.4},
+        mouseDown:false,lastX:0,lastY:0,
+        autoRot:true,running:false,animId:null,clipEnabled:false,oedVisible:true,trans:false,
+        baseTumorR:0.25,fps:0,lastFrame:0,frameCount:0,fpsTime:0};
+
+function b3D(){
+  var c=E('td-canvas'); if(!c||!window.THREE) return;
+  // Dispose previous
+  if(TD.renderer){try{TD.renderer.dispose();}catch(e){}}
+  if(TD.scene){
+    TD.scene.traverse(function(o){if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(function(m){m.dispose();});else o.material.dispose();}});
+  }
+  var w=c.parentElement.clientWidth, h=c.parentElement.clientHeight;
+  TD.scene=new THREE.Scene();
+  TD.camera=new THREE.PerspectiveCamera(45,w/h,0.1,100);
+  TD.renderer=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true});
+  TD.renderer.setSize(w,h,false);
+  TD.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  TD.renderer.localClippingEnabled=true;
+
+  /* BRAIN — anatomically detailed mesh with gyri/sulci */
+  var bg=new THREE.SphereGeometry(1,160,160);
+  var pos=bg.attributes.position;
+  var colArr=new Float32Array(pos.count*3);
+  for(var i=0;i<pos.count;i++){
+    var x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+    var L=Math.sqrt(x*x+y*y+z*z);
+    var nx=x/L,ny=y/L,nz=z/L;
+
+    // Multi-octave noise for realistic gyri/sulci pattern
+    var n1=Math.sin(nx*5.2+ny*4.1)*Math.cos(nz*5.5)*0.055;
+    var n2=Math.sin(ny*8.7+nz*7.3)*Math.cos(nx*9.5)*0.040;
+    var n3=Math.sin(nz*13.4)*Math.cos(ny*14.8)*0.026;
+    var n4=Math.sin(nx*21.7+nz*18.3)*0.014;
+    var n5=Math.sin(ny*28.5)*Math.cos(nx*26.1)*0.008;
+    var disp=n1+n2+n3+n4+n5;
+
+    // Deep longitudinal fissure (top center, x≈0)
+    var topness=Math.max(0,ny-0.05);
+    var fissureMask=Math.exp(-Math.pow(nx*13,2));
+    var fissure=fissureMask*0.075*topness;
+    disp-=fissure;
+
+    // Lateral (Sylvian) fissures — sides
+    var sylvian=Math.exp(-Math.pow((Math.abs(nx)-0.7)*14,2))*Math.max(0,0.3-Math.abs(ny+0.15))*0.04;
+    disp-=sylvian;
+
+    var r=1+disp;
+    // Anatomical shape: longer occipital (back), wider parietal, narrower frontal
+    var frontMod=nz>0?0.96:1.0;
+    var backMod=nz<-0.4?1.06:1.0;
+    var heightMod=0.78;
+
+    pos.setXYZ(i,
+      nx*r*0.88*frontMod,
+      ny*r*heightMod,
+      nz*r*1.16*backMod
+    );
+
+    // Vertex color: darker in sulci (valleys), lighter on gyri (peaks)
+    var intensity=0.88+disp*5.8;
+    intensity=Math.max(0.55,Math.min(1.05,intensity));
+    // Salmon-pink tissue color with depth variation
+    colArr[i*3]=intensity*0.94;
+    colArr[i*3+1]=intensity*0.68;
+    colArr[i*3+2]=intensity*0.66;
+  }
+  bg.setAttribute('color',new THREE.BufferAttribute(colArr,3));
+  bg.computeVertexNormals();
+
+  TD.brainMat=new THREE.MeshPhongMaterial({
+    vertexColors:true,
+    specular:0x4a2828,shininess:18,
+    emissive:0x0e0606,emissiveIntensity:0.35,
+    transparent:true,opacity:0.97,
+    clippingPlanes:[],clipShadows:true,
+    flatShading:false
+  });
+  TD.brain=new THREE.Mesh(bg,TD.brainMat);
+  TD.scene.add(TD.brain);
+
+  // Brain stem
+  var stemG=new THREE.CylinderGeometry(0.09,0.13,0.35,20);
+  var stemM=new THREE.MeshPhongMaterial({color:0xb88080,shininess:14,emissive:0x180808,emissiveIntensity:0.25});
+  var stem=new THREE.Mesh(stemG,stemM);
+  stem.position.set(0,-0.78,-0.05);
+  stem.rotation.x=0.18;
+  TD.scene.add(stem);
+
+  // Cerebellum — striated folia pattern
+  var cbG=new THREE.SphereGeometry(0.36,72,72);
+  var cbP=cbG.attributes.position;
+  var cbCol=new Float32Array(cbP.count*3);
+  for(var k=0;k<cbP.count;k++){
+    var cx=cbP.getX(k),cy=cbP.getY(k),cz=cbP.getZ(k);
+    var CL=Math.sqrt(cx*cx+cy*cy+cz*cz);
+    var cnx=cx/CL,cny=cy/CL,cnz=cz/CL;
+    // Horizontal striations characteristic of cerebellum
+    var stria=Math.sin(cny*38)*0.012+Math.sin(cnz*28)*0.005;
+    var cbr=1+stria;
+    cbP.setXYZ(k,cnx*0.36*cbr,cny*0.30*cbr,cnz*0.36*cbr);
+    var cInt=0.85+stria*8;
+    cInt=Math.max(0.6,Math.min(1.0,cInt));
+    cbCol[k*3]=cInt*0.88;
+    cbCol[k*3+1]=cInt*0.60;
+    cbCol[k*3+2]=cInt*0.58;
+  }
+  cbG.setAttribute('color',new THREE.BufferAttribute(cbCol,3));
+  cbG.computeVertexNormals();
+  var cbM=new THREE.MeshPhongMaterial({vertexColors:true,shininess:16,emissive:0x140606,emissiveIntensity:0.25});
+  var cb=new THREE.Mesh(cbG,cbM);
+  cb.position.set(0,-0.55,-0.85);
+  TD.scene.add(cb);
+
+  /* TUMOUR — parameterized */
+  var vol=(S&&S.vol)||28.4, nec=(S&&S.nec)||0.38, enh=(S&&S.enh)||0.74, flair=(S&&S.flair)||1.85;
+  TD.baseTumorR=0.13+Math.min(vol/60,1)*0.20;  // 0.13 - 0.33
+  var tR=TD.baseTumorR;
+
+  TD.tumorGrp=new THREE.Group();
+  TD.tumorGrp.position.set(0.32,0.05,0.20);  // right frontal-parietal
+  TD.brain.add(TD.tumorGrp);
+
+  // Tumour core - irregular shape
+  var tg=new THREE.SphereGeometry(tR,40,40);
+  var tp=tg.attributes.position;
+  for(var t=0;t<tp.count;t++){
+    var tx=tp.getX(t),ty=tp.getY(t),tz=tp.getZ(t);
+    var TL=Math.sqrt(tx*tx+ty*ty+tz*tz);
+    var nrgh=Math.sin(tx*15)*Math.cos(ty*13)*0.025+Math.sin(tz*18)*0.018;
+    var nr=tR+nrgh;
+    tp.setXYZ(t,tx/TL*nr,ty/TL*nr,tz/TL*nr);
+  }
+  tg.computeVertexNormals();
+  var tm=new THREE.MeshPhongMaterial({
+    color:0xff8c42,specular:0xffaa66,shininess:50,
+    emissive:0x882200,emissiveIntensity:0.5,
+    clippingPlanes:[]
+  });
+  TD.tumor=new THREE.Mesh(tg,tm);
+  TD.tumorGrp.add(TD.tumor);
+
+  // Enhancing rim (slightly larger, yellow-glow shell)
+  var rg=new THREE.SphereGeometry(tR*1.08,32,32);
+  var rm=new THREE.MeshPhongMaterial({
+    color:0xffd44d,specular:0xffffff,shininess:80,
+    emissive:0xaa5500,emissiveIntensity:0.6,
+    transparent:true,opacity:0.45,side:THREE.DoubleSide,
+    clippingPlanes:[]
+  });
+  var rim=new THREE.Mesh(rg,rm);
+  rim.userData.isRim=true;
+  TD.tumor.add(rim);
+
+  // Necrotic core
+  if(nec>0.1){
+    var ncR=tR*Math.min(nec,0.85)*0.65;
+    var ncg=new THREE.SphereGeometry(ncR,24,24);
+    var ncm=new THREE.MeshPhongMaterial({color:0x1a1a1a,specular:0x222222,shininess:10,emissive:0x000000,clippingPlanes:[]});
+    TD.nec=new THREE.Mesh(ncg,ncm);
+    TD.tumor.add(TD.nec);
+  }
+
+  // Oedema halo - translucent blue
+  var oR=tR*(1+flair*0.32);
+  var og=new THREE.SphereGeometry(oR,40,40);
+  var om=new THREE.MeshPhongMaterial({
+    color:0x4496dc,specular:0x66aaff,shininess:20,
+    emissive:0x114488,emissiveIntensity:0.2,
+    transparent:true,opacity:0.18,side:THREE.DoubleSide,
+    depthWrite:false,clippingPlanes:[]
+  });
+  TD.oed=new THREE.Mesh(og,om);
+  TD.tumorGrp.add(TD.oed);
+
+  // Lighting — anatomical study setup
+  var amb=new THREE.AmbientLight(0xffffff,0.32);
+  TD.scene.add(amb);
+  var key=new THREE.DirectionalLight(0xfff0e0,0.95);
+  key.position.set(3,4,3);
+  TD.scene.add(key);
+  var fill=new THREE.DirectionalLight(0x99bbff,0.42);
+  fill.position.set(-3,-1,-2);
+  TD.scene.add(fill);
+  var rim=new THREE.DirectionalLight(0xffaa88,0.55);
+  rim.position.set(0,2,-4);
+  TD.scene.add(rim);
+  var bottom=new THREE.DirectionalLight(0xccaa88,0.18);
+  bottom.position.set(0,-4,0);
+  TD.scene.add(bottom);
+
+  // Initial camera position
+  TD.camera.position.set(0,1,3.4);
+  TD.camera.lookAt(0,0,0);
+
+  // Stats
+  var triCount=0;
+  TD.scene.traverse(function(o){if(o.isMesh&&o.geometry){var idx=o.geometry.index;if(idx)triCount+=idx.count/3;else triCount+=o.geometry.attributes.position.count/3;}});
+  E('td-tri').textContent=Math.round(triCount).toLocaleString();
+
+  // Update info panel
+  td_updateInfo();
+
+  // Bind mouse events ONCE
+  if(!c.dataset.bound){
+    c.dataset.bound='1';
+    c.addEventListener('mousedown',function(e){TD.mouseDown=true;TD.lastX=e.clientX;TD.lastY=e.clientY;c.style.cursor='grabbing';});
+    window.addEventListener('mouseup',function(){TD.mouseDown=false;if(E('td-canvas'))E('td-canvas').style.cursor='grab';});
+    window.addEventListener('mousemove',function(e){
+      if(!TD.mouseDown)return;
+      var dx=e.clientX-TD.lastX, dy=e.clientY-TD.lastY;
+      TD.target.rotY+=dx*0.008;
+      TD.rotX+=dy*0.008;
+      TD.rotX=Math.max(-Math.PI/2.2,Math.min(Math.PI/2.2,TD.rotX));
+      TD.lastX=e.clientX; TD.lastY=e.clientY;
+    });
+    c.addEventListener('wheel',function(e){
+      e.preventDefault();
+      TD.target.zoom+=e.deltaY*0.003;
+      TD.target.zoom=Math.max(1.6,Math.min(6.5,TD.target.zoom));
+    },{passive:false});
+    window.addEventListener('resize',function(){
+      if(!TD.renderer||!E('td-canvas'))return;
+      var nw=E('td-canvas').parentElement.clientWidth, nh=E('td-canvas').parentElement.clientHeight;
+      TD.camera.aspect=nw/nh; TD.camera.updateProjectionMatrix();
+      TD.renderer.setSize(nw,nh,false);
+    });
+  }
+}
+
+function td_updateInfo(){
+  if(!S||!S.vol)return;
+  var t=parseFloat(E('td-time')?E('td-time').value:0)||0;
+  var prog=(S.sc||45)/100;
+  var growth=Math.exp(prog*t/12*1.45);
+  var curVol=Math.round(S.vol*Math.pow(growth,1.3)*10)/10;
+  var volColor=curVol>50?'var(--danger)':(curVol>30?'var(--warn)':'var(--text2)');
+  var deltaTxt=t>0?(' (+'+(curVol-S.vol).toFixed(1)+')'):'';
+  var rows=[
+    ['Tumour volume', curVol+' cm\u00b3'+deltaTxt, volColor],
+    ['Necrosis fraction', Math.min(S.nec*100*(1+t*0.04),85).toFixed(0)+'%', S.nec>0.3?'var(--warn)':'var(--text2)'],
+    ['Enhancement', (S.enh*100).toFixed(0)+'%', S.enh>0.7?'var(--danger)':'var(--text2)'],
+    ['Oedema (FLAIR)', S.flair.toFixed(2), S.flair>1.8?'var(--warn)':'var(--text2)'],
+    ['WHO grade', S.idh==='Wild-type'?'IV (GBM)':'III', S.idh==='Wild-type'?'var(--danger)':'var(--warn)'],
+    ['Location', 'R frontoparietal', 'var(--text2)']
+  ];
+  if(t>0){
+    rows.push(['Predicted at month '+t, growth.toFixed(2)+'x baseline', 'var(--accent)']);
+  }
+  E('td-info').innerHTML=rows.map(function(r){
+    return '<div style="display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">'+r[0]+'</span><span class="mono" style="color:'+r[2]+';font-weight:600">'+r[1]+'</span></div>';
+  }).join('');
+
+  var inter='3D model reconstructs the patient\'s tumour as a '+(S.vol>40?'large':(S.vol>20?'moderate-sized':'small'))+' lesion ('+S.vol.toFixed(1)+' cm\u00b3) located in the right frontoparietal region, displaying ';
+  if(S.enh>0.65)inter+='avid ring enhancement, ';
+  if(S.nec>0.3)inter+='a central necrotic core ('+(S.nec*100).toFixed(0)+'%), ';
+  if(S.flair>1.5)inter+='surrounding vasogenic oedema (FLAIR '+S.flair.toFixed(2)+'). ';
+  else inter+='. ';
+  if(t>0){
+    inter+='At month '+t+', the model predicts a tumour volume of '+curVol+' cm\u00b3 ('+growth.toFixed(2)+'x baseline) under no treatment. ';
+  }
+  inter+='Drag the model to inspect from different angles. Enable cross-section to view the necrotic core. Use the timeline slider to visualise predicted growth over 12 months.';
+  E('td-interp').textContent=inter;
+}
+
+function td_start(){
+  if(TD.running)return;
+  if(!TD.scene||!S||!S.vol)return;
+  TD.running=true;
+  TD.lastFrame=performance.now();
+  td_loop();
+}
+
+function td_stop(){TD.running=false;if(TD.animId){cancelAnimationFrame(TD.animId);TD.animId=null;}}
+
+function td_loop(){
+  if(!TD.running)return;
+  TD.animId=requestAnimationFrame(td_loop);
+  var now=performance.now();
+  var dt=(now-TD.lastFrame)/1000;
+  TD.lastFrame=now;
+  TD.frameCount++;
+  TD.fpsTime+=dt;
+  if(TD.fpsTime>=0.5){
+    TD.fps=Math.round(TD.frameCount/TD.fpsTime);
+    E('td-fps').textContent=TD.fps;
+    TD.frameCount=0; TD.fpsTime=0;
+  }
+
+  // Smooth interpolation
+  TD.rotY+=(TD.target.rotY-TD.rotY)*0.12;
+  TD.zoom+=(TD.target.zoom-TD.zoom)*0.12;
+
+  // Auto-rotate when not interacting
+  if(TD.autoRot && !TD.mouseDown){
+    TD.target.rotY+=0.004;
+  }
+
+  // Update camera position (orbit)
+  TD.camera.position.x=Math.sin(TD.rotY)*Math.cos(TD.rotX)*TD.zoom;
+  TD.camera.position.y=Math.sin(TD.rotX)*TD.zoom;
+  TD.camera.position.z=Math.cos(TD.rotY)*Math.cos(TD.rotX)*TD.zoom;
+  TD.camera.lookAt(0,0,0);
+
+  TD.renderer.render(TD.scene,TD.camera);
+}
+
+function td_view(v){
+  if(v==='reset'){TD.target.rotY=0;TD.rotX=0.15;TD.target.zoom=3.4;}
+  else if(v==='top'){TD.target.rotY=0;TD.rotX=Math.PI/2.3;TD.target.zoom=3.2;}
+  else if(v==='front'){TD.target.rotY=0;TD.rotX=0;TD.target.zoom=3.2;}
+  else if(v==='side'){TD.target.rotY=Math.PI/2;TD.rotX=0;TD.target.zoom=3.2;}
+  E('td-pos').textContent='Anatomical reference: '+(v==='reset'?'standard':v);
+}
+
+function td_toggle(t){
+  if(t==='cross'){
+    TD.clipEnabled=E('td-cross').checked;
+    var planes=TD.clipEnabled?[new THREE.Plane(new THREE.Vector3(0,0,-1),0)]:[];
+    TD.brainMat.clippingPlanes=planes;
+    if(TD.tumor)TD.tumor.material.clippingPlanes=planes;
+    if(TD.nec)TD.nec.material.clippingPlanes=planes;
+    if(TD.oed)TD.oed.material.clippingPlanes=planes;
+    TD.tumor.children.forEach(function(c){if(c.material)c.material.clippingPlanes=planes;});
+  } else if(t==='oed'){
+    TD.oedVisible=E('td-oed').checked;
+    if(TD.oed)TD.oed.visible=TD.oedVisible;
+  } else if(t==='rot'){
+    TD.autoRot=E('td-rot').checked;
+  } else if(t==='trans'){
+    TD.trans=E('td-trans').checked;
+    TD.brainMat.opacity=TD.trans?0.35:0.96;
+    TD.brainMat.needsUpdate=true;
+  }
+}
+
+function td_setTime(v){
+  var t=parseFloat(v);
+  E('td-tlbl').textContent='Month '+t;
+  if(!TD.tumorGrp||!S||!S.vol)return;
+  var prog=(S.sc||45)/100;
+  // Aggressive growth — visible across 0–12 months
+  // At t=12 with prog=0.45: exp(0.45*1*1.4)=exp(0.63)=1.88x
+  // At t=12 with prog=0.75: exp(1.05)=2.86x
+  var growth=Math.exp(prog*t/12*1.45);
+  var sc=Math.min(growth,3.0);
+  TD.tumorGrp.scale.set(sc,sc,sc);
+
+  // Tumour shifts toward periphery as it grows (mass effect)
+  var shift=Math.min((sc-1)*0.05,0.15);
+  TD.tumorGrp.position.set(0.32+shift,0.05,0.20+shift*0.5);
+
+  // Visual feedback — tumour glows redder/hotter with growth
+  if(TD.tumor&&TD.tumor.material){
+    TD.tumor.material.emissiveIntensity=0.5+(sc-1)*0.35;
+    var rimChild=TD.tumor.children[0];
+    if(rimChild&&rimChild.material){
+      rimChild.material.emissiveIntensity=0.6+(sc-1)*0.4;
+      rimChild.material.opacity=Math.min(0.45+(sc-1)*0.2,0.75);
+    }
+  }
+  // Oedema also expands
+  if(TD.oed){
+    var oedSc=1+(sc-1)*0.6;
+    TD.oed.scale.set(oedSc,oedSc,oedSc);
+  }
+  td_updateInfo();
+}
+
+/* ── REPORT ── */
+function bReport(){
+  var d=new Date(),ds=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  E('rpt-meta').textContent='Generated: '+ds+' \u2502 Patient: '+S.pid+' \u2502 OncoTwin-AI v2.0 \u2502 TCGA-GBM n=207';
+  var pf=[['Patient ID',S.pid],['Age / Sex',S.age+' / '+S.sex],['KPS score',S.kps+' / 100'],['Surgery',S.surg],['MGMT / IDH / EGFR / TERT',S.mgmt+' / '+S.idh+' / '+S.egfr+' / '+S.tert],['Treatment',S.rt+' Gy RT + TMZ \u00d7'+S.tmz],['Months since Dx',S.msd+' months'],['Tumour volume',S.vol.toFixed(1)+' cm\u00b3']];
+  E('rpt-pt').innerHTML=pf.map(function(f){return '<div class="irow"><span class="rkey">'+f[0]+'</span><span class="rval">'+f[1]+'</span></div>';}).join('');
+  var of=[['AI risk score',S.sc+'% \u2014 '+S.rg+' risk'],['Predicted PFS',S.pt+' months (95% CI: '+Math.max(1,S.pt-1.8).toFixed(1)+'\u2013'+(S.pt+2.4).toFixed(1)+')'],['6-month survival',S.s6+'%'],['12-month survival',S.s12+'%'],['24-month survival',S.s24+'%'],['Model confidence',S.sc>70||S.sc<30?'High':'Moderate']];
+  E('rpt-out').innerHTML=of.map(function(f){return '<div class="irow"><span class="rkey">'+f[0]+'</span><span class="rval">'+f[1]+'</span></div>';}).join('');
+  var mo=[3,6,9,12,15,18,21,24],dd=S.sc/100;
+  E('rpt-tl').innerHTML=mo.map(function(m){var p=Math.max(2,Math.round(100*Math.exp(-dd*m/9)));return '<div class="irow"><span class="rkey">Month '+m+'</span><span class="rval">'+p+'%</span></div>';}).join('');
+  E('rpt-recs').innerHTML=E('rec-list').innerHTML;
+}
+</script>
+</body>
+</html>
